@@ -13,6 +13,7 @@ main{flex:1;padding:16px;display:flex;flex-direction:column;gap:12px}
 .l{display:block;font-size:13px;color:var(--mu);font-weight:600;margin-bottom:6px}
 .m{font-size:13px;color:var(--mu)}.t{font-weight:600}
 .in{width:100%;box-sizing:border-box;height:48px;border:1px solid var(--bd);border-radius:10px;padding:0 12px;font-size:16px;background:var(--cd);color:var(--tx)}
+textarea.in{height:auto;min-height:64px;padding:8px 12px;resize:vertical;font-family:inherit}
 .b{height:52px;border:0;border-radius:12px;background:#1a6fb3;color:#fff;font-size:16px;font-weight:600;flex:1;cursor:pointer}
 .b:disabled{opacity:.45;cursor:not-allowed}
 .b2{background:var(--cd);color:var(--tx);border:1px solid var(--bd)}

@@ -20,7 +20,7 @@ export default function Home({ nav }) {
   return (
     <Screen title="QA Agent">
       <div className="m">Kelola test case dan test execution.</div>
-      <MenuItem title="Import Test Case" desc={`${db.sets.length} kumpulan · ${total} test case`} onClick={() => nav('import')} />
+      <MenuItem title="Kelola Test Case" desc={`${db.sets.length} kumpulan · ${total} test case`} onClick={() => nav('import')} />
       <MenuItem title="Buat Test Execution" desc="Pilih kumpulan test case" onClick={() => nav('create')} />
       <MenuItem title="Test Execution" desc={`${db.execs.length} execution`} onClick={() => nav('list')} />
     </Screen>

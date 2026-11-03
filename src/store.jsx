@@ -28,6 +28,9 @@ export function StoreProvider({ children }) {
     addSet(title, cases) {
       setDb((d) => ({ ...d, sets: [...d.sets, { id: uid(), title, at: today(), cases }] }));
     },
+    deleteSet(id) {
+      setDb((d) => ({ ...d, sets: d.sets.filter((s) => s.id !== id) }));
+    },
     addExecution(title, setIds) {
       setDb((d) => {
         const cases = [];
@@ -35,6 +38,9 @@ export function StoreProvider({ children }) {
           s.cases.forEach((c) => cases.push({ ...c, s: '', note: '' })));
         return { ...d, execs: [{ id: uid(), title, cases, idx: 0, done: false, report: null }, ...d.execs] };
       });
+    },
+    deleteExecution(id) {
+      setDb((d) => ({ ...d, execs: d.execs.filter((e) => e.id !== id) }));
     },
     updateExec(id, fn) {
       setDb((d) => ({ ...d, execs: d.execs.map((e) => (e.id === id ? fn(e) : e)) }));

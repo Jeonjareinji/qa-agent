@@ -23,8 +23,8 @@ export default function CreateExecution({ nav }) {
   if (!db.sets.length) {
     return (
       <Screen title="Buat Test Execution" onBack={() => nav('home')}
-        footer={<button className="b" onClick={() => nav('import')}>Import Test Case</button>}>
-        <div className="empty">Belum ada test case tersimpan.<br />Import dulu lewat menu Import Test Case.</div>
+        footer={<button className="b" onClick={() => nav('import')}>Tambah Test Case</button>}>
+        <div className="empty">Belum ada test case tersimpan.<br />Buat atau import dulu lewat menu Kelola Test Case.</div>
       </Screen>
     );
   }

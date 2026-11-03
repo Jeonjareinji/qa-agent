@@ -2,7 +2,7 @@
 export async function renderPdfPages(buf, container, isCancelled) {
   const mod = await import('pdfjs-dist');
   const pdfjs = mod.getDocument ? mod : mod.default;
-  const worker = (await import('pdfjs-dist/build/pdf.worker.min.js?url')).default;
+  const worker = (await import('pdfjs-dist/build/pdf.worker.min.mjs?url')).default;
   pdfjs.GlobalWorkerOptions.workerSrc = worker;
 
   const doc = await pdfjs.getDocument({ data: new Uint8Array(buf.slice(0)) }).promise;
