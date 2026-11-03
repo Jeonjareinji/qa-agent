@@ -1,0 +1,90 @@
+/* Sheet gelap yang menempel di bawah dan bisa diperluas dengan mengetuk pegangannya. */
+.asheet {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  border-radius: 36px 36px 0 0;
+  background: var(--sheet-gelap);
+  box-shadow: 0 -22px 50px -10px rgba(3, 13, 18, 0.6);
+  transition: top 0.55s cubic-bezier(0.2, 0.8, 0.2, 1);
+  animation: sheet-naik 0.6s 0.05s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+.asheet-gagang {
+  flex: none;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  min-height: 44px;
+  padding: 6px 0 0;
+  background: none;
+  border: 0;
+}
+.asheet-gagang i {
+  display: block;
+  width: 46px;
+  height: 5px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.35);
+  transition:
+    width 0.3s ease,
+    background-color 0.3s ease;
+}
+.asheet-gagang[aria-expanded='true'] i {
+  width: 30px;
+  background: rgba(106, 211, 227, 0.7);
+}
+.asheet-kepala {
+  flex: none;
+  padding: 0 20px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.asheet-isi {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 0 20px 140px;
+}
+.baris-daftar {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--border);
+}
+.baris-daftar:last-child {
+  border-bottom: 0;
+}
+.baris-tombol {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 72px;
+  padding: 12px 0;
+  background: none;
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  transition: transform 0.12s ease;
+}
+/* Varian bertumpuk: judul, progres, dan keterangan di dalam satu baris yang bisa diketuk. */
+.baris-tombol.kolom {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+  padding: 16px 0;
+  color: var(--text);
+}
+.baris-tombol:active {
+  transform: scale(0.985);
+}
+.baris-tombol:last-child {
+  border-bottom: 0;
+}

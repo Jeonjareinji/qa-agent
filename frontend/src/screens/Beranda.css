@@ -1,0 +1,291 @@
+/* Beranda: hero gelap dengan orb, sheet terang, dan sheet gelap berlapis. */
+.ahome {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+}
+.hero-gelap {
+  position: relative;
+  flex: none;
+  overflow: hidden;
+  color: #fff;
+  padding: calc(16px + var(--safe-atas)) 20px 64px;
+  background:
+    radial-gradient(80% 46% at 50% 40%, rgba(53, 166, 190, 0.5), transparent 72%),
+    linear-gradient(180deg, #02090c 0%, #052029 52%, #0c4755 100%);
+}
+.hero-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.hero-logo {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 20px;
+  line-height: 26px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+.hero-logo i {
+  width: 38px;
+  height: 38px;
+  border-radius: 13px;
+  background: linear-gradient(135deg, #6ad3e3, #2fa7c4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #04222b;
+}
+.hero-avatar {
+  width: 44px;
+  height: 44px;
+  flex: none;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 700;
+}
+.hero-sapa {
+  margin-top: 10px;
+  font-size: 14px;
+  line-height: 20px;
+  color: rgba(255, 255, 255, 0.72);
+}
+.orb {
+  position: relative;
+  width: 248px;
+  height: 248px;
+  margin: 14px auto 6px;
+}
+.orb svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+.orb-tengah {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.orb-tengah b {
+  font-family: var(--font-mono);
+  font-size: 46px;
+  line-height: 52px;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+}
+.orb-tengah span {
+  font-size: 14px;
+  line-height: 20px;
+  color: rgba(255, 255, 255, 0.8);
+}
+.orb-riak {
+  fill: none;
+  stroke: rgba(106, 211, 227, 0.4);
+  stroke-width: 1.5;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: riak 4.8s ease-out infinite;
+}
+.orb-riak.kedua {
+  animation-delay: -2.4s;
+}
+.orb-kontur {
+  fill: none;
+  stroke: rgba(130, 220, 235, 0.3);
+  stroke-width: 1;
+}
+.orb-putar1 {
+  transform-origin: 120px 120px;
+  animation: putar 28s linear infinite;
+}
+.orb-putar2 {
+  transform-origin: 120px 120px;
+  animation: putar 40s linear infinite reverse;
+}
+.orb-jalur {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.1);
+  stroke-width: 16;
+}
+.orb-busur {
+  fill: none;
+  stroke-width: 16;
+  animation: isi-busur 1.2s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+.orb-busur.pass {
+  stroke: #34d17a;
+}
+.orb-busur.fail {
+  stroke: #f26b76;
+}
+.orb-busur.blocked {
+  stroke: #fbbf24;
+}
+.orb-busur.na {
+  stroke: #8ea6c4;
+}
+.orb-dalam {
+  fill: rgba(106, 211, 227, 0.05);
+  stroke: rgba(255, 255, 255, 0.22);
+  stroke-width: 1.5;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: napas 5s ease-in-out infinite;
+}
+.hero-status {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 15px;
+  line-height: 22px;
+  font-weight: 600;
+  color: #9be6f1;
+  text-align: center;
+}
+.hero-mini {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px 16px;
+  margin-top: 10px;
+  font-size: 14px;
+  line-height: 20px;
+  color: rgba(255, 255, 255, 0.88);
+}
+.hero-mini span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.lsheet {
+  position: relative;
+  flex: none;
+  margin-top: -36px;
+  border-radius: 36px 36px 0 0;
+  background: linear-gradient(180deg, #f8fdfe, #eef7f9);
+  padding: 22px 0 64px;
+  box-shadow: 0 -18px 40px -20px rgba(3, 13, 18, 0.5);
+  animation: sheet-naik 0.55s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+.dsheet {
+  position: relative;
+  flex: none;
+  margin-top: -36px;
+  border-radius: 36px 36px 0 0;
+  background: var(--sheet-gelap);
+  padding: 20px 20px calc(48px + var(--safe-bawah));
+  box-shadow: 0 -20px 44px -14px rgba(3, 13, 18, 0.6);
+  animation: sheet-naik 0.65s 0.08s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+.hscroll {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding: 4px 20px 14px;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+}
+.hscroll::-webkit-scrollbar {
+  display: none;
+}
+.hcard {
+  position: relative;
+  overflow: hidden;
+  flex: none;
+  width: 156px;
+  min-height: 112px;
+  scroll-snap-align: start;
+  border-radius: 22px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 10px;
+  background: #fff;
+  box-shadow: var(--shadow-sm);
+  color: var(--text);
+}
+.hcard.grad {
+  background: var(--grad);
+  color: #04222b;
+}
+.hcard.grad::after {
+  content: '';
+  position: absolute;
+  right: -26px;
+  bottom: -30px;
+  width: 120px;
+  height: 120px;
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.5), transparent 66%);
+}
+.hcard b {
+  font-family: var(--font-mono);
+  font-size: 30px;
+  line-height: 36px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+.hcard .k {
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 600;
+}
+.menu-baris {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  min-height: 72px;
+  padding: 12px 0;
+  background: none;
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  transition: transform 0.12s ease;
+}
+.menu-baris:last-child {
+  border-bottom: 0;
+}
+.menu-baris:active {
+  transform: scale(0.985);
+}
+.baris-bug {
+  display: grid;
+  grid-template-columns: 84px minmax(0, 1fr) 28px;
+  align-items: center;
+  gap: 12px;
+  font-size: 14px;
+  line-height: 20px;
+}
+.baris-bug > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.baris-bug b {
+  text-align: right;
+  font-family: var(--font-mono);
+  font-weight: 600;
+}
+.sheet-bagian {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 20px;
+}

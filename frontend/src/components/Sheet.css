@@ -1,0 +1,56 @@
+/* Bottom sheet modal (detail test case dan Catat Bug). */
+.scrim {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  background: var(--scrim);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  animation: pudar 0.2s ease-out both;
+}
+.scrim.atas {
+  z-index: 12;
+}
+.sheet {
+  display: flex;
+  flex-direction: column;
+  max-height: 92%;
+  background: var(--sheet-gelap);
+  border-radius: 34px 34px 0 0;
+  box-shadow: var(--shadow-sheet);
+  animation: sheet-masuk 0.32s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+.sheet-gagang {
+  flex: none;
+  width: 40px;
+  height: 4px;
+  margin: 8px auto 0;
+  border-radius: 999px;
+  background: var(--border-strong);
+  opacity: 0.5;
+}
+.sheet-kepala {
+  flex: none;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 8px 8px 12px 20px;
+}
+.sheet-isi {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 0 20px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.sheet-kaki {
+  flex: none;
+  padding: 12px 20px calc(20px + var(--safe-bawah));
+  border-top: 1px solid var(--border);
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}

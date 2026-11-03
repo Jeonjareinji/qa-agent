@@ -1,0 +1,532 @@
+/* QA Agent · tema Aura Sheets.
+   Warna dan font disimpan sebagai variabel di :root. Area gelap (sheet) memakai kelas .dk yang menimpa variabel. */
+
+:root {
+  --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  --bg: #edf6f8;
+  --surface: #ffffff;
+  --surface-2: #f0f6f8;
+  --surface-3: #e1ebef;
+  --border: rgba(11, 58, 70, 0.09);
+  --border-btn: #c7d8de;
+  --border-strong: #7f97a1;
+  --text: #0b1a21;
+  --text-2: #36505b;
+  --text-3: #566b75;
+
+  --primary: #14a3be;
+  --primary-hover: #0f8fa8;
+  --on-primary: #04222b;
+  --primary-soft: rgba(20, 163, 190, 0.12);
+  --primary-soft-text: #075c6e;
+  --link: #0a7c92;
+  --grad: linear-gradient(135deg, #6ad3e3 0%, #2fa7c4 100%);
+  --glow: rgba(47, 167, 196, 0.5);
+  --primary-ring: rgba(20, 163, 190, 0.28);
+
+  --pass: #16a34a;
+  --pass-bg: #e5f6ec;
+  --pass-fg: #0b6b35;
+  --fail: #dc2626;
+  --fail-bg: #fdebeb;
+  --fail-fg: #a61b1b;
+  --blocked: #e08a00;
+  --blocked-bg: #fff1d4;
+  --blocked-fg: #8a4b00;
+  --na: #6b87a8;
+  --na-bg: #e7edf5;
+  --na-fg: #3a5473;
+  --notrun: #98a0ae;
+  --notrun-bg: #ebedf1;
+  --notrun-fg: #464e5d;
+
+  --sev-critical: #991b1b;
+  --sev-critical-bg: #fbdada;
+  --sev-critical-fg: #7a1212;
+  --sev-major: #ea580c;
+  --sev-major-bg: #ffe6d3;
+  --sev-major-fg: #9a3a00;
+  --sev-minor: #eab308;
+  --sev-minor-bg: #fff4c2;
+  --sev-minor-fg: #6f5400;
+  --sev-trivial: #9ca3af;
+  --sev-trivial-bg: #ecEEF1;
+  --sev-trivial-fg: #4b5563;
+
+  --shadow-sm: 0 1px 2px rgba(11, 58, 70, 0.05), 0 14px 30px -18px rgba(11, 58, 70, 0.32);
+  --shadow-float: 0 14px 34px -12px rgba(3, 13, 18, 0.5);
+  --shadow-sheet: 0 -16px 48px rgba(3, 13, 18, 0.5);
+  --scrim: rgba(3, 13, 18, 0.58);
+  --glass: rgba(255, 255, 255, 0.92);
+  --hl: rgba(255, 255, 255, 0.9);
+  --sheet-gelap: linear-gradient(180deg, #252c34, #161b21);
+
+  --safe-atas: env(safe-area-inset-top, 0px);
+  --safe-bawah: env(safe-area-inset-bottom, 0px);
+}
+
+/* Area gelap: sheet daftar, sheet detail, dan sheet Catat Bug. */
+.dk {
+  color: var(--text);
+  --bg: #171c22;
+  --surface: rgba(255, 255, 255, 0.05);
+  --surface-2: rgba(255, 255, 255, 0.08);
+  --surface-3: rgba(255, 255, 255, 0.13);
+  --border: rgba(255, 255, 255, 0.09);
+  --border-btn: rgba(255, 255, 255, 0.2);
+  --border-strong: rgba(255, 255, 255, 0.45);
+  --text: #eef3f5;
+  --text-2: #bac7cd;
+  --text-3: #94a4ac;
+  --primary: #6ad3e3;
+  --primary-soft: rgba(106, 211, 227, 0.16);
+  --primary-soft-text: #a3e7f1;
+  --link: #86ddeb;
+  --primary-ring: rgba(106, 211, 227, 0.3);
+  --pass: #34d17a;
+  --pass-bg: rgba(52, 209, 122, 0.15);
+  --pass-fg: #6ee7a0;
+  --fail: #f26b76;
+  --fail-bg: rgba(242, 107, 118, 0.17);
+  --fail-fg: #ff9aa3;
+  --blocked: #fbbf24;
+  --blocked-bg: rgba(251, 191, 36, 0.15);
+  --blocked-fg: #fcd34d;
+  --na: #8ea6c4;
+  --na-bg: rgba(142, 166, 196, 0.16);
+  --na-fg: #bbcde3;
+  --notrun: #7f8796;
+  --notrun-bg: rgba(150, 160, 178, 0.14);
+  --notrun-fg: #b8bec9;
+  --sev-critical: #ef4444;
+  --sev-critical-bg: rgba(239, 68, 68, 0.18);
+  --sev-critical-fg: #ff9b9b;
+  --sev-major: #fb923c;
+  --sev-major-bg: rgba(251, 146, 60, 0.16);
+  --sev-major-fg: #fdba74;
+  --sev-minor: #facc15;
+  --sev-minor-bg: rgba(250, 204, 21, 0.15);
+  --sev-minor-fg: #fde047;
+  --sev-trivial: #9ca3af;
+  --sev-trivial-bg: rgba(156, 163, 175, 0.16);
+  --sev-trivial-fg: #d1d5db;
+  --shadow-sm: 0 0 0 0 transparent;
+  --hl: rgba(255, 255, 255, 0.05);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 22px;
+  color: var(--text);
+  background: #d9e8ec;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior: none;
+}
+
+h1,
+h2,
+h3,
+p,
+ul,
+ol,
+dl,
+dd {
+  margin: 0;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+input,
+textarea,
+select {
+  font: inherit;
+  color: inherit;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+/* Bingkai aplikasi: kolom ponsel di tengah pada layar lebar. */
+.app {
+  position: relative;
+  height: 100dvh;
+  max-width: 480px;
+  margin: 0 auto;
+  overflow: hidden;
+  background:
+    radial-gradient(70% 34% at 85% 4%, rgba(106, 211, 227, 0.55), transparent 70%),
+    radial-gradient(60% 30% at 0% 26%, rgba(190, 232, 241, 0.7), transparent 70%),
+    linear-gradient(180deg, #e2f3f6 0%, #f4fafb 42%, #eaf4f6 100%);
+}
+
+.layar {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  animation: layar-masuk 0.28s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+/* Tipografi */
+.t-title {
+  font-size: 22px;
+  line-height: 28px;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+}
+.t-h2 {
+  font-size: 16px;
+  line-height: 22px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+.t-body {
+  font-size: 15px;
+  line-height: 22px;
+}
+.t-sm {
+  font-size: 14px;
+  line-height: 20px;
+}
+.t-cap {
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--text-3);
+}
+.label {
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 700;
+}
+.help {
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--text-3);
+}
+.mono {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+.c-2 {
+  color: var(--text-2);
+}
+.c-3 {
+  color: var(--text-3);
+}
+.c-link {
+  color: var(--link);
+}
+.c-pass {
+  color: var(--pass-fg);
+}
+.c-fail {
+  color: var(--fail-fg);
+}
+.c-warn {
+  color: var(--blocked-fg);
+}
+.w5 {
+  font-weight: 500;
+}
+.w6 {
+  font-weight: 600;
+}
+.w7 {
+  font-weight: 700;
+}
+.tautan {
+  background: none;
+  border: 0;
+  padding: 8px 0;
+  color: var(--link);
+  font-weight: 600;
+  font-size: 14px;
+  text-align: left;
+}
+.tautan:hover {
+  text-decoration: underline;
+}
+
+/* Tata letak */
+.row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.col {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.col-4 {
+  gap: 4px;
+}
+.col-8 {
+  gap: 8px;
+}
+.col-16 {
+  gap: 16px;
+}
+.gap-8 {
+  gap: 8px;
+}
+.grow {
+  flex: 1;
+  min-width: 0;
+}
+.between {
+  justify-content: space-between;
+}
+.start {
+  align-items: flex-start;
+}
+.wrap {
+  flex-wrap: wrap;
+}
+.ell {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.grid2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.grid3 {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+.grid-8 {
+  gap: 8px;
+}
+.sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* Area isi layar yang bisa di-scroll */
+.scroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.scroll.tight {
+  gap: 12px;
+}
+.layar:has(.bottombar) > .scroll {
+  padding-bottom: 156px;
+}
+
+/* Animasi */
+.muncul > * {
+  animation: naik 0.38s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+.muncul > *:nth-child(2) {
+  animation-delay: 0.04s;
+}
+.muncul > *:nth-child(3) {
+  animation-delay: 0.08s;
+}
+.muncul > *:nth-child(4) {
+  animation-delay: 0.12s;
+}
+.muncul > *:nth-child(5) {
+  animation-delay: 0.16s;
+}
+.muncul > *:nth-child(6) {
+  animation-delay: 0.2s;
+}
+.muncul > *:nth-child(7) {
+  animation-delay: 0.24s;
+}
+.muncul > *:nth-child(8) {
+  animation-delay: 0.28s;
+}
+
+@keyframes layar-masuk {
+  from {
+    opacity: 0;
+    transform: translateX(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes naik {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes pudar {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes sheet-naik {
+  from {
+    transform: translateY(46px);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+@keyframes sheet-masuk {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: none;
+  }
+}
+@keyframes letup {
+  0% {
+    transform: scale(0.92);
+  }
+  60% {
+    transform: scale(1.04);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+@keyframes gambar-centang {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes cincin {
+  0% {
+    opacity: 0.7;
+    transform: scale(0.85);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.25);
+  }
+}
+@keyframes isi-lebar {
+  from {
+    width: 0;
+  }
+}
+@keyframes isi-busur {
+  from {
+    stroke-dasharray: 0 1000;
+  }
+}
+@keyframes kilau {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: 0 0;
+  }
+}
+@keyframes buka-isi {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes putar {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes riak {
+  0% {
+    transform: scale(0.86);
+    opacity: 0.55;
+  }
+  100% {
+    transform: scale(1.2);
+    opacity: 0;
+  }
+}
+@keyframes napas {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.85;
+  }
+  50% {
+    transform: scale(1.04);
+    opacity: 1;
+  }
+}
+@keyframes denyut {
+  0% {
+    box-shadow: 0 0 0 0 rgba(106, 211, 227, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(106, 211, 227, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(106, 211, 227, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+  .gambar-centang {
+    stroke-dashoffset: 0;
+  }
+}
