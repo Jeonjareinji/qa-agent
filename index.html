@@ -4,7 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>QA Agent</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <style>
 :root{--bg:#f2f3f5;--cd:#fff;--tx:#17212b;--mu:#4f5b66;--bd:#e1e4e8;--ac:#1a6fb3;--okb:#e3f4e8;--ok:#14612f;--bdb:#fde8e7;--bad:#9c1c14;--blb:#fff1d6;--bl:#7a4b00;--skb:#e9ecef;--sk:#3d4852;color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1720;--cd:#182430;--tx:#e8eef4;--mu:#a9b6c3;--bd:#2b3a48;--ac:#6db4ec;--okb:#123524;--ok:#7fdc9f;--bdb:#3b1816;--bad:#ff9a92;--blb:#3a2a08;--bl:#f2c46a;--skb:#2a3540;--sk:#c3ced8;color-scheme:dark}}
@@ -44,7 +47,7 @@ footer{position:sticky;bottom:env(safe-area-inset-bottom,0px);background:var(--c
 <div id="app"><header><button class="lk" id="bk" data-a="back" aria-label="Kembali" hidden>‹ Kembali</button><h1 id="t">QA Agent</h1></header><main id="m"></main><footer id="f" hidden></footer></div>
 <div id="toast" role="status" hidden></div>
 <script>
-var K="qa-agent-v1",db={sets:[],execs:[]},S={v:"home",draft:null,pick:{},id:null,pdf:null,rep:null};
+var K="qa-agent-v1",db={sets:[],execs:[]},S={v:"home",draft:null,pick:{},id:null,pdf:null,pdfId:null};
 try{var raw=localStorage.getItem(K);if(raw)db=JSON.parse(raw)}catch(e){}
 function save(){try{localStorage.setItem(K,JSON.stringify(db))}catch(e){}}
 function $(s){return document.querySelector(s)}
@@ -75,34 +78,68 @@ new:function(){
  if(!db.sets.length)return{t:"Buat Test Execution",b:'<div class="empty">Belum ada test case tersimpan.<br>Import dulu lewat menu Import Test Case.</div>',f:'<button class="b" data-a="go" data-g="imp">Import Test Case</button>'};
  return{t:"Buat Test Execution",b:'<div><label class="l" for="te">Judul test execution</label><input class="in" id="te" placeholder="mis. Regression Sprint 12"></div><div class="l" style="margin:4px 0 0">Pilih kumpulan test case</div>'+db.sets.map(function(s){return'<label class="cd r"><input class="chk" type="checkbox" data-s="'+s.id+'"'+(S.pick[s.id]?" checked":"")+'><span><span class="t" style="display:block">'+esc(s.title)+'</span><span class="m">'+s.cases.length+" test case · "+esc(s.at)+"</span></span></label>"}).join(""),f:fsub()}},
 list:function(){return{t:"Test Execution",b:db.execs.length?db.execs.map(function(e){var c=cnt(e),n=e.cases.length,p=Math.round(c.n/n*100);
- return'<div class="cd" style="display:flex;flex-direction:column;gap:10px"><div class="r"><div style="flex:1"><div class="t">'+esc(e.title)+'</div><div class="m">'+n+' test case'+(e.report?" · "+esc(e.report.name):"")+'</div></div><button class="pl" data-a="play" data-i="'+e.id+'" aria-label="Play '+esc(e.title)+'">▶</button></div><div class="bar"><i style="width:'+p+'%"></i></div><div class="r" style="justify-content:space-between"><span class="m">'+c.n+" dari "+n+' dinilai</span><span class="p '+(e.done?"ok":c.n?"run":"sk")+'">'+(e.done?"Selesai":c.n?"Berjalan":"Belum mulai")+"</span></div></div>"}).join(""):'<div class="empty">Belum ada test execution.</div>',f:'<button class="b" data-a="go" data-g="new">Buat Test Execution</button>'}},
+ return'<div class="cd" style="display:flex;flex-direction:column;gap:10px"><div class="r"><div style="flex:1"><div class="t">'+esc(e.title)+'</div><div class="m">'+n+' test case'+(e.report?" · "+esc(e.report.name):"")+'</div></div><button class="pl" data-a="play" data-i="'+e.id+'" aria-label="Play '+esc(e.title)+'">▶</button></div><div class="bar"><i style="width:'+p+'%"></i></div><div class="r" style="justify-content:space-between"><span class="m">'+c.n+" dari "+n+' dinilai</span><span class="p '+(e.done?"ok":c.n?"run":"sk")+'">'+(e.done?"Selesai":c.n?"Berjalan":"Belum mulai")+"</span></div>"+(e.done?'<button class="lk" data-a="rep" data-i="'+e.id+'" style="align-self:flex-start;padding:0">Unduh report PDF</button>':"")+"</div>"}).join(""):'<div class="empty">Belum ada test execution.</div>',f:'<button class="b" data-a="go" data-g="new">Buat Test Execution</button>'}},
 run:function(){var e=ex(S.id),c=e.cases[e.idx],n=e.cases.length,k=cnt(e).n,last=e.idx===n-1;
  return{t:e.title,b:'<div><div class="r" style="justify-content:space-between;margin-bottom:6px"><span class="m">Test case '+(e.idx+1)+" dari "+n+'</span><span class="m">'+Math.round(k/n*100)+'%</span></div><div class="bar"><i style="width:'+k/n*100+'%"></i></div></div><div class="cd" style="display:flex;flex-direction:column;gap:8px"><div class="m">'+esc(c.id)+'</div><div class="t">'+esc(c.sc)+'</div>'+(c.st?'<div class="m t">Langkah</div><div style="white-space:pre-line">'+esc(c.st)+"</div>":"")+(c.ex?'<div class="m t">Hasil yang diharapkan</div><div>'+esc(c.ex)+"</div>":"")+'</div><div><div class="l">Status</div><div class="r" style="gap:8px">'+ST.map(function(s){return'<button class="sb'+(c.s===s?" on":"")+'" data-a="st" data-s="'+s+'" aria-pressed="'+(c.s===s)+'">'+s+"</button>"}).join("")+'</div></div><div><label class="l" for="no">Catatan</label><input class="in" id="no" value="'+esc(c.note||"")+'"></div>',f:'<button class="b b2" data-a="prev"'+(e.idx?"":" disabled")+'>Sebelumnya</button><button class="b" data-a="next">'+(last?"Selesai":"Berikutnya")+"</button>"}},
-fin:function(){var e=ex(S.id),c=cnt(e),r=S.rep||e.report;
- return{t:"Selesaikan Pengujian",b:'<div class="t">'+esc(e.title)+'</div><div class="r" style="gap:8px">'+ST.map(function(s){return'<div class="cd" style="flex:1;text-align:center;padding:12px 4px"><div class="t" style="font-size:22px">'+c[s]+'</div><span class="p '+s+'">'+s+"</span></div>"}).join("")+"</div>"+(c.n<e.cases.length?'<div class="m">'+(e.cases.length-c.n)+" test case belum dinilai.</div>":"")+'<div class="l" style="margin:4px 0 0">Report hasil pengujian (PDF)</div><label class="dz"><input type="file" id="fp" accept="application/pdf,.pdf"><span class="t">'+(r?esc(r.name):"Pilih file PDF")+'</span><span class="m">'+(r?(r.size/1048576).toFixed(1)+" MB":"Wajib diunggah")+"</span></label>",f:'<button class="b" data-a="saverep"'+(r?"":" disabled")+">Simpan Hasil Pengujian</button>"}}
+fin:function(){var e=ex(S.id),c=cnt(e),n=e.cases.length,p=S.pdf&&S.pdfId===e.id?S.pdf:null,rate=n?Math.round(c.Pass/n*100):0;
+ return{t:"Selesaikan Pengujian",b:'<div class="t">'+esc(e.title)+'</div><div class="r" style="gap:8px">'+ST.map(function(s){return'<div class="cd" style="flex:1;text-align:center;padding:12px 4px"><div class="t" style="font-size:22px">'+c[s]+'</div><span class="p '+s+'">'+s+"</span></div>"}).join("")+"</div>"+(c.n<n?'<div class="m">'+(n-c.n)+" test case belum dinilai; akan ditulis “Belum dinilai” di report.</div>":"")+
+ (p?'<div class="cd" style="display:flex;flex-direction:column;gap:6px"><div class="t">Report PDF siap</div><div class="m">'+esc(p.name)+" · "+Math.max(1,Math.round(p.blob.size/1024))+' KB</div></div><a class="b b2" style="display:flex;align-items:center;justify-content:center;text-decoration:none;flex:none" href="'+p.url+'" target="_blank" rel="noopener">Buka PDF</a>':'<div class="cd"><div class="t" style="margin-bottom:6px">Report PDF dibuat otomatis</div><div class="m">Pass rate '+rate+"% ("+c.Pass+" dari "+n+" test case). Isi report: ringkasan hasil, tabel semua test case, dan detail test case Fail dan Blocked.</div></div>"),
+ f:p?'<button class="b b2" data-a="getpdf">Unduh / Bagikan PDF</button><button class="b" data-a="go" data-g="list">Selesai</button>':'<button class="b" data-a="genrep">Buat Report PDF</button>'}}
 };
 function fsub(){var k=Object.keys(S.pick).filter(function(x){return S.pick[x]}),n=0;db.sets.forEach(function(s){if(S.pick[s.id])n+=s.cases.length});
  return'<button class="b" id="sub" data-a="submit"'+(k.length?"":" disabled")+">Submit"+(k.length?" ("+k.length+" dipilih · "+n+" test case)":"")+"</button>"}
 function go(v){S.v=v;render()}
 function render(){var v=V[S.v]();$("#t").textContent=v.t;$("#bk").hidden=S.v==="home";$("#m").innerHTML=v.b;$("#f").innerHTML=v.f||"";$("#f").hidden=!v.f;window.scrollTo(0,0)}
 function today(){return new Date().toLocaleDateString("id-ID",{day:"numeric",month:"short"})}
+var TG=window.Telegram&&window.Telegram.WebApp;if(TG){TG.ready();TG.expand()}
+var SC={Pass:[20,97,47],Fail:[156,28,20],Blocked:[122,75,0],Skip:[61,72,82]};
+function pdfSafe(s){return String(s==null?"":s).replace(/[^\t\n\r\x20-\x7E\xA0-\xFF\u2018\u2019\u201C\u201D\u2013\u2014\u2022\u2026]/g,"?")}
+function colorCell(i){return function(h){if(h.section==="body"&&h.column.index===i){h.cell.styles.fontStyle="bold";h.cell.styles.textColor=SC[h.cell.raw]||[90,90,90]}}}
+function genPdf(e){
+ var J=window.jspdf.jsPDF,d=new J({unit:"pt",format:"a4"}),W=d.internal.pageSize.getWidth(),H=d.internal.pageSize.getHeight(),M=40,c=cnt(e),n=e.cases.length;
+ var u=TG&&TG.initDataUnsafe&&TG.initDataUnsafe.user,by=u?[u.first_name,u.last_name].filter(Boolean).join(" "):"";
+ var now=new Date(),tgl=now.toLocaleDateString("id-ID",{day:"numeric",month:"long",year:"numeric"});
+ d.setFont("helvetica","bold");d.setFontSize(18);d.text("Laporan Pengujian",M,52);
+ d.setFontSize(13);var tl=d.splitTextToSize(pdfSafe(e.title),W-2*M);d.text(tl,M,76);
+ var y=76+tl.length*16;
+ d.setFont("helvetica","normal");d.setFontSize(10);d.setTextColor(80);
+ d.text("Tanggal: "+tgl+(by?"   |   Penguji: "+pdfSafe(by):""),M,y);y+=18;
+ var base={styles:{font:"helvetica",fontSize:9,cellPadding:4,overflow:"linebreak"},headStyles:{fillColor:[26,111,179],textColor:255},margin:{left:M,right:M}};
+ d.autoTable(Object.assign({},base,{startY:y,head:[["Total","Pass","Fail","Blocked","Skip","Belum dinilai","Pass rate"]],body:[[n,c.Pass,c.Fail,c.Blocked,c.Skip,n-c.n,(n?Math.round(c.Pass/n*100):0)+"%"]],styles:Object.assign({},base.styles,{halign:"center",fontSize:10})}));
+ y=d.lastAutoTable.finalY+22;
+ d.setTextColor(0);d.setFont("helvetica","bold");d.setFontSize(12);d.text("Hasil per test case",M,y);
+ d.autoTable(Object.assign({},base,{startY:y+8,head:[["No","ID","Scenario","Status","Catatan"]],body:e.cases.map(function(x,i){return[i+1,pdfSafe(x.id),pdfSafe(x.sc),x.s||"Belum dinilai",pdfSafe(x.note)]}),columnStyles:{0:{cellWidth:26},1:{cellWidth:52},3:{cellWidth:62}},didParseCell:colorCell(3)}));
+ var bad=e.cases.filter(function(x){return x.s==="Fail"||x.s==="Blocked"});
+ if(bad.length){y=d.lastAutoTable.finalY+22;if(y>H-120){d.addPage();y=M+10}
+  d.setTextColor(0);d.setFont("helvetica","bold");d.setFontSize(12);d.text("Detail Fail dan Blocked",M,y);
+  d.autoTable(Object.assign({},base,{startY:y+8,head:[["ID / Scenario","Status","Langkah","Hasil diharapkan","Catatan"]],body:bad.map(function(x){return[pdfSafe(x.id+"\n"+x.sc),x.s,pdfSafe(x.st),pdfSafe(x.ex),pdfSafe(x.note)]}),columnStyles:{1:{cellWidth:50}},didParseCell:colorCell(1)}))}
+ var N=d.getNumberOfPages();for(var i=1;i<=N;i++){d.setPage(i);d.setFont("helvetica","normal");d.setFontSize(8);d.setTextColor(120);d.text("QA Agent",M,H-20);d.text("Halaman "+i+" dari "+N,W-M,H-20,{align:"right"})}
+ var name="report-"+(e.title.toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"")||"execution")+"-"+now.toISOString().slice(0,10)+".pdf",blob=d.output("blob");
+ return{name:name,blob:blob,url:URL.createObjectURL(blob)}}
+function mk(e){if(!window.jspdf||!window.jspdf.jsPDF){toast("Library PDF belum termuat, cek koneksi");return null}
+ try{var p=genPdf(e);if(S.pdf&&S.pdf.url)URL.revokeObjectURL(S.pdf.url);S.pdf=p;S.pdfId=e.id;return p}catch(x){toast("Gagal membuat PDF: "+x.message);return null}}
+function dl(p){var a=document.createElement("a");a.href=p.url;a.download=p.name;document.body.appendChild(a);a.click();a.remove()}
+function deliver(p){try{var f=new File([p.blob],p.name,{type:"application/pdf"});
+ if(navigator.canShare&&navigator.canShare({files:[f]})){navigator.share({files:[f],title:p.name}).catch(function(err){if(!err||err.name!=="AbortError")dl(p)});return}}catch(x){}
+ dl(p)}
 document.addEventListener("click",function(ev){var el=ev.target.closest("[data-a]");if(!el)return;var a=el.dataset.a,e=S.id&&ex(S.id);
  if(a==="go"){if(el.dataset.g==="imp")S.draft=null;if(el.dataset.g==="new")S.pick={};go(el.dataset.g)}
  else if(a==="back")go(S.v==="run"||S.v==="fin"?"list":"home");
  else if(a==="sample"){S.draft={file:"contoh-login.xlsx",title:"Login & Registrasi",cases:toCases(SAMPLE)};render()}
  else if(a==="saveset"){var ti=$("#ti").value.trim();if(!ti)return toast("Isi judul dulu");db.sets.push({id:uid(),title:ti,at:today(),cases:S.draft.cases});save();S.draft=null;toast("Test case tersimpan");go("home")}
  else if(a==="submit"){var tt=$("#te").value.trim();if(!tt)return toast("Isi judul test execution");var cs=[];db.sets.forEach(function(s){if(S.pick[s.id])s.cases.forEach(function(c){cs.push({id:c.id,sc:c.sc,st:c.st,ex:c.ex,s:"",note:""})})});db.execs.unshift({id:uid(),title:tt,cases:cs,idx:0,done:false,report:null});save();toast("Test execution dibuat");go("list")}
- else if(a==="play"){S.id=el.dataset.i;S.rep=null;go("run")}
+ else if(a==="play"){S.id=el.dataset.i;S.pdf=null;go("run")}
  else if(a==="st"){e.cases[e.idx].s=el.dataset.s;save();render()}
  else if(a==="prev"){e.idx--;save();render()}
  else if(a==="next"){if(e.idx<e.cases.length-1){e.idx++;save();render()}else go("fin")}
- else if(a==="saverep"){e.report=S.rep||e.report;e.done=true;save();S.rep=null;toast("Hasil pengujian tersimpan");go("list")}
+ else if(a==="genrep"){var p=mk(e);if(!p)return;e.done=true;e.report={name:p.name,at:Date.now()};save();render();deliver(p)}
+ else if(a==="getpdf"){deliver(S.pdf)}
+ else if(a==="rep"){var x=ex(el.dataset.i),q=mk(x);if(q)deliver(q)}
 });
 document.addEventListener("input",function(ev){var e=S.id&&ex(S.id);if(ev.target.id==="no"&&e){e.cases[e.idx].note=ev.target.value;save()}if(ev.target.id==="ti"&&S.draft)S.draft.title=ev.target.value});
 document.addEventListener("change",function(ev){var t=ev.target;
  if(t.dataset.s&&t.type==="checkbox"){S.pick[t.dataset.s]=t.checked;$("#f").innerHTML=fsub()}
  else if(t.id==="fx"&&t.files[0]){var f=t.files[0],rd=new FileReader();rd.onload=function(){try{var w=XLSX.read(rd.result,{type:"array"}),rows=XLSX.utils.sheet_to_json(w.Sheets[w.SheetNames[0]],{header:1,defval:""}),cs=parse(rows);if(!cs.length)return toast("Tidak ada test case terbaca");S.draft={file:f.name,title:f.name.replace(/\.[^.]+$/,""),cases:cs};render()}catch(x){toast("File tidak bisa dibaca")}};rd.readAsArrayBuffer(f)}
- else if(t.id==="fp"&&t.files[0]){var p=t.files[0];if(!/pdf$/i.test(p.name))return toast("Hanya file PDF");S.rep={name:p.name,size:p.size};render()}
 });
 render();
 </script>
