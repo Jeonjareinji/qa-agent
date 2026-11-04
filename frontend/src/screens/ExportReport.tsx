@@ -9,7 +9,7 @@ import { Galat, Memuat } from '../components/Kosong.tsx'
 import { CentangBaris, Opsi } from '../components/Pilih.tsx'
 import { SuksesTanda } from '../components/SuksesTanda.tsx'
 import { KUNCI_STATUS } from '../components/statusInfo.ts'
-import { getExecution, kirimLaporanKeBot, selesaikanExecution, unduhLaporan } from '../lib/api.ts'
+import { getExecution, getLaporan, kirimLaporanKeBot, selesaikanExecution, unduhLaporan } from '../lib/api.ts'
 import { formatTanggal, hitungStatus, jumlahDieksekusi, persen } from '../lib/hitung.ts'
 import type { Nav } from '../lib/nav.ts'
 import { haptic, showAlert } from '../lib/telegram.ts'
@@ -20,27 +20,44 @@ function KartuBerkas({ hasil, executionId, nav }: { hasil: HasilExport; executio
 
   async function unduh() {
     setSibuk('unduh')
-    await unduhLaporan(executionId, hasil.format)
-    setSibuk(null)
-    await showAlert('Laporan diunduh (simulasi).')
+    try {
+      await unduhLaporan(executionId, hasil.format)
+      haptic('sukses')
+      await showAlert(`File ${hasil.namaFile} berhasil diunduh.`)
+    } catch (e) {
+      haptic('gagal')
+      await showAlert(e instanceof Error ? e.message : 'Gagal mengunduh file laporan.')
+    } finally {
+      setSibuk(null)
+    }
   }
 
   async function kirim() {
     setSibuk('kirim')
-    await kirimLaporanKeBot(executionId, hasil.format)
-    setSibuk(null)
-    haptic('sukses')
-    await showAlert('Laporan dikirim ke chat bot (simulasi).')
+    try {
+      const res = await kirimLaporanKeBot(executionId, hasil.format)
+      if (res.ok) {
+        haptic('sukses')
+        await showAlert('Laporan berhasil dikirim ke chat bot Telegram.')
+      } else {
+        await showAlert(res.message || 'Bot belum terhubung, silakan unduh langsung filenya.')
+      }
+    } catch (e) {
+      haptic('gagal')
+      await showAlert(e instanceof Error ? e.message : 'Gagal mengirim laporan ke bot.')
+    } finally {
+      setSibuk(null)
+    }
   }
 
   return (
     <>
-      <AppBar judul="Report siap" />
+      <AppBar judul="Report" onKembali={nav.kembali} />
       <div className="scroll muncul">
         <div className="sukses">
           <SuksesTanda />
           <h1 className="t-title">Execution selesai</h1>
-          <span className="t-body c-2">Laporan {hasil.format === 'pdf' ? 'PDF' : 'Excel'} sudah dibuat.</span>
+          <span className="t-body c-2">Laporan {hasil.format === 'pdf' ? 'PDF' : 'Excel'} sudah siap.</span>
         </div>
         <div className="card rata">
           <div className="berkas">
@@ -53,8 +70,10 @@ function KartuBerkas({ hasil, executionId, nav }: { hasil: HasilExport; executio
             </div>
           </div>
         </div>
-        <Banner jenis="info">
-          <span className="t-sm">Berkas laporan belum dibuat sungguhan. Pembuatan PDF/Excel menunggu backend.</span>
+        <Banner jenis="success">
+          <span className="t-sm">
+            Berkas laporan siap diunduh dalam format {hasil.format === 'pdf' ? 'PDF' : 'Excel'}.
+          </span>
         </Banner>
       </div>
       <BottomBar>
@@ -76,6 +95,7 @@ function KartuBerkas({ hasil, executionId, nav }: { hasil: HasilExport; executio
 
 export function ExportReport({ nav, executionId }: { nav: Nav; executionId: string }) {
   const { data, galat, muatUlang } = useLoad('export:' + executionId, () => getExecution(executionId))
+  const laporan = useLoad('laporan:' + executionId, () => getLaporan(executionId))
   const [format, setFormat] = useState<FormatLaporan>('pdf')
   const [actual, setActual] = useState(true)
   const [langkah, setLangkah] = useState(false)
@@ -85,6 +105,10 @@ export function ExportReport({ nav, executionId }: { nav: Nav; executionId: stri
 
   if (galat) return <Galat pesan={galat} onUlang={muatUlang} />
   if (!data) return <Memuat />
+  // Execution yang sudah selesai langsung menampilkan laporannya (bukan form pembuatan).
+  if (!hasil && data.selesai) {
+    return laporan.data ? <KartuBerkas hasil={laporan.data} executionId={executionId} nav={nav} /> : <Memuat />
+  }
   if (hasil) return <KartuBerkas hasil={hasil} executionId={executionId} nav={nav} />
 
   const hitung = hitungStatus(data.kasus)

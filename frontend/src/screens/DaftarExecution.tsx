@@ -90,28 +90,34 @@ export function DaftarExecution({ nav }: { nav: Nav }) {
           tampil.map((e) => {
             const status = statusExecution(e)
             const selesai = jumlahDieksekusi(e.kasus)
+            const buka = () =>
+              nav.buka(status === 'selesai' ? { nama: 'export', executionId: e.id } : { nama: 'jalankan', executionId: e.id })
             return (
-              <button
-                key={e.id}
-                type="button"
-                className="baris-tombol kolom"
-                onClick={() =>
-                  nav.buka(status === 'selesai' ? { nama: 'export', executionId: e.id } : { nama: 'jalankan', executionId: e.id })
-                }
-              >
-                <div className="row between start">
-                  <span className="t-body w7 grow">{e.judul}</span>
-                  <ExecutionBadge status={status} />
-                </div>
-                <Progress ukuran="kecil" segmen={[{ kelas: 'f-primary', persen: persen(selesai, e.kasus.length) }]} />
-                <div className="row between">
-                  <span className="t-sm c-2 mono">
-                    {selesai}/{e.kasus.length} dieksekusi
-                  </span>
-                  <span className="t-sm c-2">{formatTanggal(e.dibuatPada)}</span>
-                </div>
-                <span className="t-cap ell">PIC: {e.picNama.length > 0 ? e.picNama.join(', ') : 'belum ditentukan'}</span>
-              </button>
+              <div key={e.id} className="baris-aksi">
+                <button type="button" className="baris-tombol kolom" onClick={buka}>
+                  <div className="row between start">
+                    <span className="t-body w7 grow">{e.judul}</span>
+                    <ExecutionBadge status={status} />
+                  </div>
+                  <Progress ukuran="kecil" segmen={[{ kelas: 'f-primary', persen: persen(selesai, e.kasus.length) }]} />
+                  <div className="row between">
+                    <span className="t-sm c-2 mono">
+                      {selesai}/{e.kasus.length} dieksekusi
+                    </span>
+                    <span className="t-sm c-2">{formatTanggal(e.dibuatPada)}</span>
+                  </div>
+                  <span className="t-cap ell">PIC: {e.picNama.length > 0 ? e.picNama.join(', ') : 'belum ditentukan'}</span>
+                </button>
+                {status === 'selesai' ? (
+                  <Button varian="secondary" kecil blok ikon="dokumen" onKlik={buka}>
+                    Lihat report
+                  </Button>
+                ) : (
+                  <Button kecil blok ikon="main" onKlik={buka}>
+                    {status === 'belum' ? 'Mulai' : 'Lanjutkan'}
+                  </Button>
+                )}
+              </div>
             )
           })
         )}

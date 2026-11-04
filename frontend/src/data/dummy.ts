@@ -19,11 +19,13 @@ export type TipeBug =
   | 'Compatibility'
   | 'Integration'
 export type Periode = '30' | '7' | 'sprint'
+export type StatusBug = 'Open' | 'In Progress' | 'Resolved' | 'Closed'
 export type StatusExecution = 'belum' | 'berjalan' | 'selesai'
 export type FormatLaporan = 'pdf' | 'xlsx'
-export type JenisEvidence = 'foto' | 'galeri' | 'link'
+export type JenisEvidence = 'foto' | 'galeri' | 'video' | 'link'
 
 export const DAFTAR_STATUS: StatusKasus[] = ['Pass', 'Fail', 'Blocked', 'N/A', 'Not Run']
+export const DAFTAR_STATUS_BUG: StatusBug[] = ['Open', 'In Progress', 'Resolved', 'Closed']
 export const DAFTAR_SEVERITY: Severity[] = ['Critical', 'Major', 'Minor', 'Trivial']
 export const DAFTAR_PRIORITAS_BUG: PrioritasBug[] = ['P1 - Urgent', 'P2 - High', 'P3 - Medium', 'P4 - Low']
 export const DAFTAR_TIPE_BUG: TipeBug[] = [
@@ -103,6 +105,10 @@ export interface KasusExecution {
   kumpulanId: string
   jenis: Jenis
   modul: string
+  fitur?: string
+  refRequirement?: string
+  precondition?: string
+  testData?: string
   prioritas: Prioritas | Criticality
   tipe: Tipe
   scenario: string
@@ -132,18 +138,24 @@ export interface TestExecution {
 export interface Bug {
   id: string
   judul: string
+  status: StatusBug
   severity: Severity
   prioritas: PrioritasBug
   tipe: TipeBug
   actualResult: string
   executionId: string
-  tcId: string
+  tcId: string | null // null = bug di luar scenario (masih dalam satu execution)
   evidence: Evidence[]
   dibuatPada: string
   dibuatOleh: string
 }
 
 // ---------- Tipe untuk layar ----------
+
+export interface BugLengkap extends Bug {
+  executionJudul: string
+  dibuatOlehNama: string
+}
 
 export interface KumpulanRingkas {
   id: string
@@ -222,6 +234,10 @@ export interface ImportDraft {
   jenis: Jenis
   namaFile: string
   judul: string
+  sheet?: string
+  header?: HeaderSheet[]
+  cases?: TestCase[]
+  laporan?: LaporanValidasi
 }
 
 export interface HasilImport {
@@ -252,8 +268,18 @@ export interface InputEvidence {
 
 export interface InputBug {
   executionId: string
-  tcId: string
+  tcId: string | null // null = bug di luar scenario (masih dalam satu execution)
   judul: string
+  severity: Severity
+  prioritas: PrioritasBug
+  tipe: TipeBug
+  actualResult: string
+  evidenceBaru: InputEvidence[]
+}
+
+export interface InputUbahBug {
+  judul: string
+  status: StatusBug
   severity: Severity
   prioritas: PrioritasBug
   tipe: TipeBug
@@ -389,6 +415,10 @@ function kasusDari(k: KumpulanTestCase): KasusExecution[] {
     kumpulanId: k.id,
     jenis: t.jenis,
     modul: t.modul,
+    fitur: t.fitur,
+    refRequirement: t.refRequirement,
+    precondition: t.precondition,
+    testData: t.testData,
     prioritas: t.prioritas,
     tipe: t.tipe,
     scenario: t.scenario,
@@ -596,6 +626,7 @@ export function buatDataAwal(): Db {
   const bug = (id: string, judul: string, severity: Severity, prioritas: PrioritasBug, tipe: TipeBug, executionId: string, tcId: string, hari: number): Bug => ({
     id,
     judul,
+    status: 'Open',
     severity,
     prioritas,
     tipe,

@@ -2,8 +2,10 @@ import { useMemo, useState } from 'react'
 import type { ReactElement } from 'react'
 import { ruteAwal } from './lib/nav.ts'
 import type { Nav, Rute } from './lib/nav.ts'
+import { FokusLayar } from './lib/useLoad.ts'
 import { Beranda } from './screens/Beranda.tsx'
 import { BuatExecution } from './screens/BuatExecution.tsx'
+import { DaftarBug } from './screens/DaftarBug.tsx'
 import { DaftarExecution } from './screens/DaftarExecution.tsx'
 import { DaftarTestCase } from './screens/DaftarTestCase.tsx'
 import { DetailTestCase } from './screens/DetailTestCase.tsx'
@@ -39,6 +41,8 @@ function tampilkan(rute: Rute, nav: Nav): ReactElement {
       return <DaftarTestCase nav={nav} />
     case 'detailTestCase':
       return <DetailTestCase nav={nav} kumpulanId={rute.kumpulanId} />
+    case 'daftarBug':
+      return <DaftarBug nav={nav} />
     case 'editTestCase':
       return <EditTestCase nav={nav} kumpulanId={rute.kumpulanId} tcId={rute.tcId} />
   }
@@ -58,12 +62,18 @@ export default function App() {
     [],
   )
 
-  const teratas = tumpukan[tumpukan.length - 1]
   return (
     <div className="app">
-      <div className="layar" key={tumpukan.length + ':' + teratas.nama}>
-        {tampilkan(teratas, nav)}
-      </div>
+      {tumpukan.map((rute, indeks) => {
+        const aktif = indeks === tumpukan.length - 1
+        return (
+          <FokusLayar.Provider key={indeks + ':' + rute.nama} value={aktif}>
+            <div className={aktif ? 'layar' : 'layar layar-tersembunyi'} inert={!aktif}>
+              {tampilkan(rute, nav)}
+            </div>
+          </FokusLayar.Provider>
+        )
+      })}
     </div>
   )
 }

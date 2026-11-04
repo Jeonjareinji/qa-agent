@@ -95,6 +95,41 @@ export function SelectField({
   )
 }
 
+// Pilihan dengan nilai (id) dan label terpisah, mis. execution atau test case.
+export function SelectOpsi({
+  label,
+  nilai,
+  onUbah,
+  pilihan,
+  bantuan,
+}: {
+  label: string
+  nilai: string
+  onUbah: (nilai: string) => void
+  pilihan: { nilai: string; label: string; nonaktif?: boolean }[]
+  bantuan?: string
+}) {
+  const id = useId()
+  return (
+    <div className="field">
+      <label className="label" htmlFor={id}>
+        {label}
+      </label>
+      <div className="select-wrap">
+        <select id={id} className="select" value={nilai} onChange={(e) => onUbah(e.target.value)}>
+          {pilihan.map((p) => (
+            <option key={p.nilai} value={p.nilai} disabled={p.nonaktif}>
+              {p.label}
+            </option>
+          ))}
+        </select>
+        <Icon nama="bawah" />
+      </div>
+      {bantuan && <span className="help">{bantuan}</span>}
+    </div>
+  )
+}
+
 export function SearchField({
   nilai,
   onUbah,

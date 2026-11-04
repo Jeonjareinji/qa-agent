@@ -7,6 +7,7 @@ interface TelegramWebApp {
   initDataUnsafe?: { user?: { first_name?: string } }
   ready(): void
   expand(): void
+  disableVerticalSwipes?(): void // Telegram 7.7+; hilang di versi lama
   close(): void
   showAlert(pesan: string, callback?: () => void): void
   showConfirm(pesan: string, callback: (ok: boolean) => void): void
@@ -37,6 +38,12 @@ export function ready(): void {
 
 export function expand(): void {
   window.Telegram?.WebApp?.expand()
+}
+
+// Tanpa ini Telegram menganggap gesekan ke bawah sebagai perintah menutup/mengecilkan Mini App,
+// sehingga sheet tidak bisa digeser ke bawah dengan jari.
+export function disableVerticalSwipes(): void {
+  window.Telegram?.WebApp?.disableVerticalSwipes?.()
 }
 
 export function close(): void {

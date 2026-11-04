@@ -3,19 +3,61 @@ import type { InputEvidence } from '../data/dummy.ts'
 import { haptic, showAlert } from '../lib/telegram.ts'
 import { Button } from './Button.tsx'
 import { Icon } from './Icon.tsx'
+import { Sheet } from './Sheet.tsx'
 import type { ItemThumb } from './evidenceItem.ts'
 
+// Batas ukuran video di sisi klien. TODO backend: samakan dengan batas unggah server.
+const MAKS_VIDEO_MB = 50
+
+function IsiThumb({ t }: { t: ItemThumb }) {
+  if (t.pratinjau && t.jenis === 'video') {
+    return (
+      <>
+        <video src={t.pratinjau + '#t=0.1'} muted playsInline preload="metadata" />
+        <span className="thumb-main" aria-hidden="true">
+          <Icon nama="main" ukuran={14} />
+        </span>
+      </>
+    )
+  }
+  if (t.pratinjau) return <img src={t.pratinjau} alt="" />
+  const ikon = t.jenis === 'link' ? 'tautan' : t.jenis === 'video' ? 'main' : 'gambar'
+  return <Icon nama={ikon} ukuran={24} />
+}
+
 export function Thumbs({ item }: { item: ItemThumb[] }) {
+  const [dibuka, setDibuka] = useState<ItemThumb | null>(null)
   if (item.length === 0) return null
+
+  function ketuk(t: ItemThumb) {
+    if (t.tautan) window.open(t.tautan, '_blank', 'noopener,noreferrer')
+    else setDibuka(t)
+  }
+
   return (
-    <div className="thumbs">
-      {item.map((t) => (
-        <div key={t.id} className="thumb" role="img" aria-label={t.label}>
-          {t.pratinjau ? <img src={t.pratinjau} alt="" /> : <Icon nama={t.jenis === 'link' ? 'tautan' : 'gambar'} ukuran={24} />}
-          {t.tag && <span className={t.tag === 'Baru' ? 'thumb-tag baru' : 'thumb-tag'}>{t.tag}</span>}
-        </div>
-      ))}
-    </div>
+    <>
+      <div className="thumbs">
+        {item.map((t) => (
+          <button key={t.id} type="button" className="thumb" aria-label={t.label} onClick={() => ketuk(t)}>
+            <IsiThumb t={t} />
+            {t.tag && <span className={t.tag === 'Baru' ? 'thumb-tag baru' : 'thumb-tag'}>{t.tag}</span>}
+          </button>
+        ))}
+      </div>
+      {dibuka && (
+        <Sheet diAtas judul={dibuka.jenis === 'video' ? 'Video' : 'Evidence'} subjudul={<span className="t-sm c-2 ell">{dibuka.nama}</span>} onTutup={() => setDibuka(null)}>
+          {dibuka.pratinjau ? (
+            dibuka.jenis === 'video' ? (
+              <video className="evidence-media" src={dibuka.pratinjau} controls playsInline autoPlay />
+            ) : (
+              <img className="evidence-media" src={dibuka.pratinjau} alt={dibuka.nama} />
+            )
+          ) : (
+            <span className="t-body c-2">Pratinjau tidak tersedia. Ini data contoh, berkas aslinya belum diunggah.</span>
+          )}
+        </Sheet>
+      )}
+    </>
   )
 }
 
@@ -24,20 +66,29 @@ interface PemilihProps {
   onTambah: (evidence: InputEvidence) => void
 }
 
-// Tombol kamera, galeri, dan tautan. Berkas hanya dipakai untuk pratinjau di browser (tidak diunggah).
+// Tombol kamera, galeri, video, dan tautan. Berkas hanya dipakai untuk pratinjau di browser (tidak diunggah).
 export function PemilihEvidence({ mode, onTambah }: PemilihProps) {
   const kamera = useRef<HTMLInputElement>(null)
   const galeri = useRef<HTMLInputElement>(null)
+  const video = useRef<HTMLInputElement>(null)
   const [tampilLink, setTampilLink] = useState(false)
   const [tautan, setTautan] = useState('')
 
-  function dariBerkas(jenis: 'foto' | 'galeri', daftar: FileList | null) {
+  function dariBerkas(jenis: 'foto' | 'galeri' | 'video', daftar: FileList | null) {
     if (!daftar) return
+    let ditambah = false
     for (const berkas of Array.from(daftar)) {
+      if (jenis === 'video' && berkas.size > MAKS_VIDEO_MB * 1024 * 1024) {
+        haptic('gagal')
+        void showAlert(`Video "${berkas.name}" terlalu besar. Maksimal ${MAKS_VIDEO_MB} MB.`)
+        continue
+      }
       // TODO backend: unggah berkas ke penyimpanan. Sekarang hanya pratinjau lokal.
-      onTambah({ jenis, nama: berkas.name, url: berkas.type.startsWith('image/') ? URL.createObjectURL(berkas) : null })
+      const bisaDilihat = berkas.type.startsWith('image/') || berkas.type.startsWith('video/')
+      onTambah({ jenis, nama: berkas.name, url: bisaDilihat ? URL.createObjectURL(berkas) : null })
+      ditambah = true
     }
-    haptic('pilih')
+    if (ditambah) haptic('pilih')
   }
 
   function tambahTautan() {
@@ -69,7 +120,7 @@ export function PemilihEvidence({ mode, onTambah }: PemilihProps) {
       <input
         ref={galeri}
         type="file"
-        accept="image/*,video/*"
+        accept="image/*"
         multiple
         hidden
         onChange={(e) => {
@@ -77,15 +128,29 @@ export function PemilihEvidence({ mode, onTambah }: PemilihProps) {
           e.target.value = ''
         }}
       />
+      <input
+        ref={video}
+        type="file"
+        accept="video/*"
+        multiple
+        hidden
+        onChange={(e) => {
+          dariBerkas('video', e.target.files)
+          e.target.value = ''
+        }}
+      />
       {mode === 'tiga' ? (
-        <div className="grid3 grid-8">
-          <Button varian="secondary" kecil rapat ikon="kamera" onKlik={() => kamera.current?.click()}>
+        <div className="grid2 grid-8">
+          <Button varian="secondary" kecil ikon="kamera" onKlik={() => kamera.current?.click()}>
             Kamera
           </Button>
-          <Button varian="secondary" kecil rapat ikon="gambar" onKlik={() => galeri.current?.click()}>
+          <Button varian="secondary" kecil ikon="gambar" onKlik={() => galeri.current?.click()}>
             Galeri
           </Button>
-          <Button varian="secondary" kecil rapat ikon="tautan" onKlik={() => setTampilLink((v) => !v)}>
+          <Button varian="secondary" kecil ikon="main" onKlik={() => video.current?.click()}>
+            Video
+          </Button>
+          <Button varian="secondary" kecil ikon="tautan" onKlik={() => setTampilLink((v) => !v)}>
             Link
           </Button>
         </div>
@@ -97,8 +162,14 @@ export function PemilihEvidence({ mode, onTambah }: PemilihProps) {
           <Button varian="secondary" kecil ikon="unggah" onKlik={() => galeri.current?.click()}>
             Upload gambar
           </Button>
+          <div style={{ gridColumn: '1 / -1' }}>
+            <Button varian="secondary" kecil blok ikon="main" onKlik={() => video.current?.click()}>
+              Upload video
+            </Button>
+          </div>
         </div>
       )}
+      <span className="help">Video: rekam langsung atau pilih dari galeri, maksimal {MAKS_VIDEO_MB} MB.</span>
       {mode === 'tiga' && tampilLink && (
         <div className="row gap-8">
           <div className="grow">

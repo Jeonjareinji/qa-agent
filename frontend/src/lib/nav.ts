@@ -14,6 +14,7 @@ export type Rute =
   | { nama: 'daftarTestCase' }
   | { nama: 'detailTestCase'; kumpulanId: string }
   | { nama: 'editTestCase'; kumpulanId: string; tcId: string }
+  | { nama: 'daftarBug' }
 
 export interface Nav {
   buka(rute: Rute): void // tambah layar di atas tumpukan
@@ -23,7 +24,7 @@ export interface Nav {
   beranda(): void
 }
 
-// Tautan dari bot: ?layar=import, ?layar=buat, ?layar=execution, ?layar=testcase
+// Tautan dari bot: ?layar=import, ?layar=buat, ?layar=execution, ?layar=testcase, ?layar=bug
 export function ruteAwal(pencarian: string): Rute[] {
   const layar = new URLSearchParams(pencarian).get('layar')
   switch (layar) {
@@ -35,6 +36,8 @@ export function ruteAwal(pencarian: string): Rute[] {
       return [{ nama: 'beranda' }, { nama: 'daftarExecution' }]
     case 'testcase':
       return [{ nama: 'beranda' }, { nama: 'daftarTestCase' }]
+    case 'bug':
+      return [{ nama: 'beranda' }, { nama: 'daftarBug' }]
     default:
       return [{ nama: 'beranda' }]
   }

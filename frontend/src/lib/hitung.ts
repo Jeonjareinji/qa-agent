@@ -1,6 +1,6 @@
 // Fungsi hitung dan format kecil yang dipakai banyak layar.
 import { DAFTAR_STATUS } from '../data/dummy.ts'
-import type { KasusExecution, StatusExecution, StatusKasus, TestExecution } from '../data/dummy.ts'
+import type { KasusExecution, StatusBug, StatusExecution, StatusKasus, TestExecution } from '../data/dummy.ts'
 
 export function hitungStatus(kasus: KasusExecution[]): Record<StatusKasus, number> {
   const hasil: Record<StatusKasus, number> = { Pass: 0, Fail: 0, Blocked: 0, 'N/A': 0, 'Not Run': 0 }
@@ -55,4 +55,9 @@ export function kelasStatus(status: StatusKasus): string {
     case 'Not Run':
       return 'notrun'
   }
+}
+
+// Bug dianggap "open" selama belum Resolved atau Closed.
+export function bugTerbuka(status: StatusBug): boolean {
+  return status === 'Open' || status === 'In Progress'
 }

@@ -26,7 +26,7 @@ create table test_cases_software (
   feature          text,                                       -- Fitur
   ref_requirement  text not null default '[isi ref]',          -- Ref Requirement
   scenario         text not null,                              -- Scenario
-  tc_type          text not null check (tc_type in ('Positive','Negative')),   -- Tipe
+  tc_type          text not null check (tc_type in ('Positive','Negative','Edge')),   -- Tipe
   priority         text not null check (priority in ('Low','Medium','High')),
   precondition     text,
   test_data        text,
@@ -45,8 +45,8 @@ create table test_cases_hardware (
   tc_id                 text not null,
   component_subsystem   text,                                  -- Komponen / Subsistem
   scenario              text not null,
-  tc_type               text not null check (tc_type in ('Positive','Negative')),
-  criticality           text not null check (criticality in ('Low','Medium','High','Critical')),
+  tc_type               text not null check (tc_type in ('Positive','Negative','Edge')),
+  criticality           text not null check (criticality in ('Low','Medium','High','Critical','Safety-Critical')),
   precondition          text,                                  -- kondisi device
   test_steps            text not null,
   parameter             text,                                  -- Parameter Diukur
@@ -95,7 +95,7 @@ create table execution_results_software (
   execution_id    int not null references test_executions(id) on delete cascade,
   test_case_id    int not null references test_cases_software(id),
   actual_result   text,
-  status          text not null default 'Not Run' check (status in ('Not Run','Fail','Blocked','Pass')),
+  status          text not null default 'Not Run' check (status in ('Not Run','Fail','Blocked','Pass','N/A')),
   evidence        text[] not null default '{}',                -- daftar link screenshot/video
   bug_id          text,
   tester_id       bigint references users(id),
@@ -111,7 +111,7 @@ create table execution_results_hardware (
   test_case_id    int not null references test_cases_hardware(id),
   measured_value  numeric,                                     -- Nilai Terukur
   actual_result   text,
-  status          text not null default 'Not Run' check (status in ('Not Run','Fail','Blocked','Pass')),
+  status          text not null default 'Not Run' check (status in ('Not Run','Fail','Blocked','Pass','N/A')),
   evidence        text[] not null default '{}',
   bug_id          text,
   tester_id       bigint references users(id),
@@ -119,6 +119,23 @@ create table execution_results_hardware (
   notes           text,
   unique (execution_id, test_case_id),
   check (status = 'Not Run' or (tester_id is not null and tested_at is not null))
+);
+
+-- ============ 4. BUGS (pencatatan bug dari test execution) ============
+create table if not exists bugs (
+  id              text primary key,                            -- mis. BUG-001
+  title           text not null,
+  status          text not null default 'Open' check (status in ('Open','In Progress','Resolved','Closed')),
+  severity        text not null check (severity in ('Critical','Major','Minor','Trivial')),
+  priority        text not null,
+  bug_type        text not null default 'Functional',
+  kind            text not null default 'software' check (kind in ('software','hardware')),
+  actual_result   text,
+  execution_id    int references test_executions(id) on delete cascade,
+  tc_id           text,
+  evidence        text[] not null default '{}',
+  created_by      bigint references users(id),
+  created_at      timestamptz not null default now()
 );
 
 create index on test_cases_software (set_id, position);

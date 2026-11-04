@@ -1,24 +1,23 @@
-import { useRef, useState } from 'react'
-import type { Jenis } from '../data/dummy.ts'
+import { useEffect, useRef, useState } from 'react'
+import type { Jenis, PratinjauImport } from '../data/dummy.ts'
 import { AppBar } from '../components/AppBar.tsx'
 import { BottomBar } from '../components/BottomBar.tsx'
 import { Button } from '../components/Button.tsx'
-import { Banner } from '../components/Banner.tsx'
 import { Icon } from '../components/Icon.tsx'
 import { TextField } from '../components/Fields.tsx'
 import { Opsi } from '../components/Pilih.tsx'
 import { Tag } from '../components/Badge.tsx'
-import { getPratinjauImport, unduhTemplate } from '../lib/api.ts'
+import { unduhTemplate } from '../lib/api.ts'
+import { parseExcelFile } from '../lib/excel.ts'
+import type { HasilBacaExcel } from '../lib/excel.ts'
 import type { Nav } from '../lib/nav.ts'
 import { haptic, showAlert } from '../lib/telegram.ts'
-import { useLoad } from '../lib/useLoad.ts'
 
 function judulDariNama(nama: string): string {
   return nama.replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' ').trim()
 }
 
-function Pratinjau({ jenis, namaFile }: { jenis: Jenis; namaFile: string }) {
-  const { data } = useLoad('pratinjau:' + jenis + namaFile, () => getPratinjauImport(jenis, namaFile))
+function Pratinjau({ namaFile, data }: { namaFile: string; data: PratinjauImport | null }) {
   if (!data) return <div className="kilau" style={{ height: 120 }} />
   return (
     <div className="card rata">
@@ -33,7 +32,7 @@ function Pratinjau({ jenis, namaFile }: { jenis: Jenis; namaFile: string }) {
       </div>
       <div className="berkas-catatan">
         <Icon nama="centangBulat" ukuran={16} />
-        Contoh isi (data fiktif) — {data.baris.length} baris pertama
+        Pratinjau isi file — {data.baris.length} baris valid pertama
       </div>
       <div className="col" style={{ padding: 16, gap: 10 }}>
         {data.baris.map((b) => (
@@ -42,6 +41,7 @@ function Pratinjau({ jenis, namaFile }: { jenis: Jenis; namaFile: string }) {
               <span className="mono t-sm w6">{b.id}</span>
               <Tag>{b.tipe}</Tag>
               <Tag>{b.level}</Tag>
+              {b.area && b.area !== '-' && <Tag>{b.area}</Tag>}
             </div>
             <span className="t-sm">{b.scenario}</span>
           </div>
@@ -53,34 +53,67 @@ function Pratinjau({ jenis, namaFile }: { jenis: Jenis; namaFile: string }) {
 
 export function ImportTestCase({ nav }: { nav: Nav }) {
   const [jenis, setJenis] = useState<Jenis>('software')
+  const [berkas, setBerkas] = useState<File | null>(null)
   const [namaFile, setNamaFile] = useState('')
+  const [hasilBaca, setHasilBaca] = useState<HasilBacaExcel | null>(null)
   const [judul, setJudul] = useState('')
   const [coba, setCoba] = useState(false)
   const input = useRef<HTMLInputElement>(null)
 
   const judulKosong = judul.trim() === ''
-  const siap = namaFile !== '' && !judulKosong
+  const siap = namaFile !== '' && !judulKosong && hasilBaca !== null
 
-  function pilihBerkas(berkas: File | undefined) {
+  useEffect(() => {
     if (!berkas) return
-    // TODO backend: unggah berkas dan baca isinya di server. Di sini hanya nama berkas yang dipakai.
-    setNamaFile(berkas.name)
-    if (judul.trim() === '') setJudul(judulDariNama(berkas.name))
+    let aktif = true
+    parseExcelFile(berkas, jenis)
+      .then((h) => {
+        if (aktif) setHasilBaca(h)
+      })
+      .catch((err: unknown) => {
+        if (aktif) void showAlert(err instanceof Error ? err.message : 'Gagal membaca file Excel.')
+      })
+    return () => {
+      aktif = false
+    }
+  }, [berkas, jenis])
+
+  function pilihBerkas(file: File | undefined) {
+    if (!file) return
+    setHasilBaca(null)
+    setBerkas(file)
+    setNamaFile(file.name)
+    if (judul.trim() === '') setJudul(judulDariNama(file.name))
     haptic('pilih')
   }
 
   function lanjut() {
     setCoba(true)
-    if (!siap) {
+    if (!siap || !hasilBaca) {
       haptic('gagal')
       return
     }
-    nav.buka({ nama: 'validasi', draft: { jenis, namaFile, judul: judul.trim() } })
+    nav.buka({
+      nama: 'validasi',
+      draft: {
+        jenis,
+        namaFile,
+        judul: judul.trim(),
+        sheet: hasilBaca.sheet,
+        header: hasilBaca.header,
+        cases: hasilBaca.cases,
+        laporan: hasilBaca.laporan,
+      },
+    })
   }
 
   async function ambilTemplate() {
-    await unduhTemplate(jenis)
-    await showAlert('Template contoh diunduh (simulasi).')
+    try {
+      await unduhTemplate(jenis)
+      await showAlert(`Template ${jenis === 'software' ? 'Software' : 'Hardware'} berhasil diunduh.`)
+    } catch (e) {
+      await showAlert(e instanceof Error ? e.message : 'Gagal mengunduh template.')
+    }
   }
 
   return (
@@ -107,7 +140,7 @@ export function ImportTestCase({ nav }: { nav: Nav }) {
             ref={input}
             type="file"
             hidden
-            accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            accept=".xlsx,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             onChange={(e) => {
               pilihBerkas(e.target.files?.[0])
               e.target.value = ''
@@ -118,7 +151,7 @@ export function ImportTestCase({ nav }: { nav: Nav }) {
               <Icon nama="unggah" ukuran={26} />
             </span>
             <span className="t-body w7">{namaFile ? 'Ganti file' : 'Pilih file Excel'}</span>
-            <span className="t-cap">Format .xlsx, sheet pertama dibaca</span>
+            <span className="t-cap">Format .xlsx, sheet sesuai jenis test case</span>
           </button>
           {coba && namaFile === '' && <span className="help c-fail">Pilih file Excel terlebih dahulu.</span>}
           <button type="button" className="tautan" onClick={() => void ambilTemplate()}>
@@ -126,7 +159,7 @@ export function ImportTestCase({ nav }: { nav: Nav }) {
           </button>
         </div>
 
-        {namaFile && <Pratinjau jenis={jenis} namaFile={namaFile} />}
+        {namaFile && <Pratinjau namaFile={namaFile} data={hasilBaca?.pratinjau ?? null} />}
 
         <TextField
           label="Judul kumpulan test case"
@@ -137,12 +170,6 @@ export function ImportTestCase({ nav }: { nav: Nav }) {
           galat={coba && judulKosong}
         />
         {coba && judulKosong && <span className="help c-fail">Judul wajib diisi.</span>}
-
-        <Banner jenis="info">
-          <span className="t-sm">
-            Berkas tidak diproses sungguhan: pratinjau dan validasi memakai data contoh sampai backend tersedia.
-          </span>
-        </Banner>
       </div>
       <BottomBar>
         <Button blok onKlik={lanjut}>

@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { DAFTAR_STATUS } from '../data/dummy.ts'
 import type { ExecutionLengkap, StatusKasus } from '../data/dummy.ts'
 import { AppBar } from '../components/AppBar.tsx'
-import { StatusBadge } from '../components/Badge.tsx'
+import { SeverityBadge, StatusBadge } from '../components/Badge.tsx'
 import { BottomBar } from '../components/BottomBar.tsx'
 import { Button } from '../components/Button.tsx'
 import { Chips } from '../components/Chips.tsx'
@@ -12,7 +12,7 @@ import { Galat, Kosong, Memuat } from '../components/Kosong.tsx'
 import { SheetDaftar } from '../components/SheetDaftar.tsx'
 import { IKON_STATUS, KUNCI_STATUS } from '../components/statusInfo.ts'
 import { Icon } from '../components/Icon.tsx'
-import { getExecution } from '../lib/api.ts'
+import { getExecution, listBugDiLuarScenario } from '../lib/api.ts'
 import { hitungStatus, jumlahDieksekusi, persen } from '../lib/hitung.ts'
 import type { Nav } from '../lib/nav.ts'
 import { useLoad } from '../lib/useLoad.ts'
@@ -34,6 +34,8 @@ export function JalankanExecution({ nav, executionId }: { nav: Nav; executionId:
   const [filter, setFilter] = useState<Filter>('semua')
   const [terpilih, setTerpilih] = useState<string | null>(null)
   const [bugTerbuka, setBugTerbuka] = useState(false)
+  const [bugLuarTerbuka, setBugLuarTerbuka] = useState(false)
+  const bugLuar = useLoad('bug-luar:' + executionId, () => listBugDiLuarScenario(executionId))
 
   if (galat) return <Galat pesan={galat} onUlang={muatUlang} />
   const execution = lokal ?? data
@@ -87,6 +89,28 @@ export function JalankanExecution({ nav, executionId }: { nav: Nav; executionId:
           </>
         }
       >
+        <div className="col col-8">
+          <Button varian="dashed" blok ikon="bug" onKlik={() => setBugLuarTerbuka(true)}>
+            Catat bug di luar scenario
+          </Button>
+          {bugLuar.data && bugLuar.data.length > 0 && (
+            <div>
+              <span className="t-sm c-2">Bug di luar scenario ({bugLuar.data.length})</span>
+              {bugLuar.data.map((b) => (
+                <div key={b.id} className="baris-daftar" style={{ gap: 6 }}>
+                  <div className="row between">
+                    <span className="mono t-sm w7">{b.id}</span>
+                    <SeverityBadge severity={b.severity} />
+                  </div>
+                  <span className="t-body">{b.judul}</span>
+                  <span className="t-cap">
+                    {b.prioritas} · {b.tipe}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
         {tampil.length === 0 ? (
           <Kosong pesan="Tidak ada test case yang cocok." />
         ) : (
@@ -133,6 +157,18 @@ export function JalankanExecution({ nav, executionId }: { nav: Nav; executionId:
           onTersimpan={() => {
             setBugTerbuka(false)
             void getExecution(execution.id).then(setLokal)
+          }}
+        />
+      )}
+
+      {bugLuarTerbuka && (
+        <CatatBug
+          executionId={execution.id}
+          kasus={null}
+          onTutup={() => setBugLuarTerbuka(false)}
+          onTersimpan={() => {
+            setBugLuarTerbuka(false)
+            bugLuar.muatUlang()
           }}
         />
       )}

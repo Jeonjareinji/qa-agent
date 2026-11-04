@@ -3,10 +3,11 @@ import { createRoot } from 'react-dom/client'
 import './index.css'
 import './components/ui.css'
 import App from './App.tsx'
-import { expand, ready } from './lib/telegram.ts'
+import { disableVerticalSwipes, expand, ready } from './lib/telegram.ts'
 
 ready()
 expand()
+disableVerticalSwipes()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

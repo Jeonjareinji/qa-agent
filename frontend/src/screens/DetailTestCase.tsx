@@ -20,12 +20,21 @@ export function DetailTestCase({ nav, kumpulanId }: { nav: Nav; kumpulanId: stri
 
   const kata = cari.trim().toLowerCase()
   const tampil = data.testCases.filter(
-    (t) => kata === '' || t.id.toLowerCase().includes(kata) || t.scenario.toLowerCase().includes(kata),
+    (t) =>
+      kata === '' ||
+      t.id.toLowerCase().includes(kata) ||
+      t.scenario.toLowerCase().includes(kata) ||
+      t.modul.toLowerCase().includes(kata) ||
+      t.fitur.toLowerCase().includes(kata),
   )
 
   async function unduh() {
-    await unduhExcelKumpulan(kumpulanId)
-    await showAlert('Excel kumpulan test case diunduh (simulasi).')
+    try {
+      await unduhExcelKumpulan(kumpulanId)
+      await showAlert('Excel kumpulan test case berhasil diunduh.')
+    } catch (e) {
+      await showAlert(e instanceof Error ? e.message : 'Gagal mengunduh Excel.')
+    }
   }
 
   return (
@@ -81,19 +90,68 @@ export function DetailTestCase({ nav, kumpulanId }: { nav: Nav; kumpulanId: stri
                       <div className="row gap-8 wrap">
                         <Tag>{t.tipe}</Tag>
                         <Tag>{t.prioritas}</Tag>
-                        <Tag>{t.modul}</Tag>
+                        {t.modul && <Tag>{t.modul}</Tag>}
+                        {t.fitur && t.fitur !== t.modul && <Tag>{t.fitur}</Tag>}
+                        {t.refRequirement && <Tag>{t.refRequirement}</Tag>}
                       </div>
                     </div>
                   </button>
                   {buka && (
                     <div className="col col-8">
-                      <ol className="langkah">
-                        {t.steps.map((s, i) => (
-                          <li key={i}>{s}</li>
-                        ))}
-                      </ol>
+                      <dl className="kv">
+                        {t.modul && (
+                          <>
+                            <dt>{t.jenis === 'hardware' ? 'Komponen / Subsistem' : 'Modul / Menu'}</dt>
+                            <dd>{t.modul}</dd>
+                          </>
+                        )}
+                        {t.jenis === 'software' && t.fitur && (
+                          <>
+                            <dt>Fitur</dt>
+                            <dd>{t.fitur}</dd>
+                          </>
+                        )}
+                        {t.refRequirement && (
+                          <>
+                            <dt>Ref Requirement</dt>
+                            <dd>{t.refRequirement}</dd>
+                          </>
+                        )}
+                        {t.precondition && (
+                          <>
+                            <dt>Precondition</dt>
+                            <dd>{t.precondition}</dd>
+                          </>
+                        )}
+                        {t.jenis === 'software' && t.testData && (
+                          <>
+                            <dt>Test Data</dt>
+                            <dd>{t.testData}</dd>
+                          </>
+                        )}
+                        {t.jenis === 'hardware' && t.parameterDiukur && (
+                          <>
+                            <dt>Parameter Diukur</dt>
+                            <dd>{t.parameterDiukur}</dd>
+                          </>
+                        )}
+                        {t.jenis === 'hardware' && t.batasLulus && (
+                          <>
+                            <dt>Batas Lulus</dt>
+                            <dd>{[t.batasLulus, t.satuan].filter(Boolean).join(' ')}</dd>
+                          </>
+                        )}
+                      </dl>
                       <div className="col col-4">
-                        <span className="t-sm c-2">Expected result</span>
+                        <span className="t-sm c-2">Test Steps</span>
+                        <ol className="langkah">
+                          {t.steps.map((s, i) => (
+                            <li key={i}>{s}</li>
+                          ))}
+                        </ol>
+                      </div>
+                      <div className="col col-4">
+                        <span className="t-sm c-2">Expected Result</span>
                         <span className="t-body">{t.expected}</span>
                       </div>
                     </div>

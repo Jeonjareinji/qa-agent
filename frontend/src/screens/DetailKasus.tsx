@@ -100,11 +100,30 @@ export function DetailKasus({ executionId, kasus, onUbah, onCatatBug, onTutup, c
       <div className="col col-16">
         <div className="row gap-8 wrap">
           <StatusBadge status={kasus.status} />
-          <Tag>{kasus.modul}</Tag>
+          {kasus.modul && <Tag>{kasus.modul}</Tag>}
+          {kasus.fitur && kasus.fitur !== kasus.modul && <Tag>{kasus.fitur}</Tag>}
+          {kasus.refRequirement && <Tag>{kasus.refRequirement}</Tag>}
           <Tag>{kasus.tipe}</Tag>
           <Tag>{kasus.prioritas}</Tag>
           {kasus.diubah && <span className="badge b-primary">Diubah di execution ini</span>}
         </div>
+
+        {(kasus.precondition || kasus.testData) && (
+          <dl className="kv">
+            {kasus.precondition && (
+              <>
+                <dt>Precondition</dt>
+                <dd>{kasus.precondition}</dd>
+              </>
+            )}
+            {kasus.testData && (
+              <>
+                <dt>Test Data</dt>
+                <dd>{kasus.testData}</dd>
+              </>
+            )}
+          </dl>
+        )}
 
         <section className="col col-8">
           <span className="label">Status hasil</span>

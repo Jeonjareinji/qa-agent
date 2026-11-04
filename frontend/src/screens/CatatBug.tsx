@@ -5,33 +5,45 @@ import { Button } from '../components/Button.tsx'
 import { PemilihEvidence, Thumbs } from '../components/Evidence.tsx'
 import { itemThumb } from '../components/evidenceItem.ts'
 import type { ItemThumb } from '../components/evidenceItem.ts'
-import { SelectField, TextArea, TextField } from '../components/Fields.tsx'
+import { SelectField, SelectOpsi, TextArea, TextField } from '../components/Fields.tsx'
+import { SearchableSelect } from '../components/SearchableSelect.tsx'
 import { Sheet } from '../components/Sheet.tsx'
-import { catatBug, getBugBerikut } from '../lib/api.ts'
+import { catatBug, getBugBerikut, listExecutions } from '../lib/api.ts'
 import { haptic, showAlert } from '../lib/telegram.ts'
 import { useLoad } from '../lib/useLoad.ts'
 
 interface Props {
-  executionId: string
-  kasus: KasusExecution
+  // Dari dalam execution: execution dan test case sudah pasti (kasus null = bug di luar scenario).
+  executionId?: string
+  kasus?: KasusExecution | null
+  // Dari Bug List: pengguna memilih execution dan, kalau ada, test case-nya.
+  pilih?: boolean
   onTutup: () => void
   onTersimpan: () => void
 }
 
-export function CatatBug({ executionId, kasus, onTutup, onTersimpan }: Props) {
+export function CatatBug({ executionId, kasus = null, pilih = false, onTutup, onTersimpan }: Props) {
   const bugBerikut = useLoad('bug-berikut', getBugBerikut)
+  const daftarExecution = useLoad('execution-untuk-bug', listExecutions)
+  const [execDipilih, setExecDipilih] = useState('')
+  const [tcDipilih, setTcDipilih] = useState('') // '' = di luar scenario
   const [judul, setJudul] = useState('')
   const [severity, setSeverity] = useState<Severity>('Major')
   const [prioritas, setPrioritas] = useState<PrioritasBug>('P2 - High')
   const [tipe, setTipe] = useState<TipeBug>('Functional')
-  const [actual, setActual] = useState(kasus.actualResult)
+  const [actual, setActual] = useState(kasus?.actualResult ?? '')
   const [baru, setBaru] = useState<InputEvidence[]>([])
   const [coba, setCoba] = useState(false)
   const [menyimpan, setMenyimpan] = useState(false)
 
+  const executions = daftarExecution.data ?? []
+  const executionAktifId = pilih ? execDipilih || executions[0]?.id || '' : (executionId ?? '')
+  const executionAktif = executions.find((e) => e.id === executionAktifId)
+  const kasusAktif = pilih ? (executionAktif?.kasus.find((k) => k.tcId === tcDipilih) ?? null) : kasus
+
   const judulKosong = judul.trim() === ''
   const thumb: ItemThumb[] = [
-    ...kasus.evidence.map((e) => itemThumb(e, 'TC')),
+    ...(kasusAktif?.evidence ?? []).map((e) => itemThumb(e, 'TC')),
     ...baru.map((b, i) =>
       itemThumb({ id: 'baru-' + i, ...b, ditambahkanPada: '' } satisfies Evidence, 'Baru'),
     ),
@@ -39,15 +51,15 @@ export function CatatBug({ executionId, kasus, onTutup, onTersimpan }: Props) {
 
   async function simpan() {
     setCoba(true)
-    if (judulKosong) {
+    if (judulKosong || executionAktifId === '') {
       haptic('gagal')
       return
     }
     setMenyimpan(true)
     try {
       const bug = await catatBug({
-        executionId,
-        tcId: kasus.tcId,
+        executionId: executionAktifId,
+        tcId: kasusAktif?.tcId ?? null,
         judul: judul.trim(),
         severity,
         prioritas,
@@ -56,7 +68,7 @@ export function CatatBug({ executionId, kasus, onTutup, onTersimpan }: Props) {
         evidenceBaru: baru,
       })
       haptic('sukses')
-      await showAlert(`${bug.id} tercatat untuk ${kasus.tcId}.`)
+      await showAlert(`${bug.id} tercatat${kasusAktif ? ' untuk ' + kasusAktif.tcId : ' di luar scenario'}.`)
       onTersimpan()
     } catch (e) {
       setMenyimpan(false)
@@ -67,21 +79,66 @@ export function CatatBug({ executionId, kasus, onTutup, onTersimpan }: Props) {
 
   return (
     <Sheet
-      diAtas
-      judul="Catat bug"
+      diAtas={!pilih && kasus !== null}
+      judul={pilih ? 'Buat bug' : 'Catat bug'}
       subjudul={
         <span className="t-sm c-2">
-          <span className="mono">{bugBerikut.data ?? '…'}</span> · {kasus.tcId}
+          <span className="mono">{bugBerikut.data ?? '…'}</span> · {kasusAktif ? kasusAktif.tcId : 'Di luar scenario'}
         </span>
       }
       onTutup={onTutup}
       kaki={
-        <Button blok onKlik={() => void simpan()} nonaktif={menyimpan}>
+        <Button blok onKlik={() => void simpan()} nonaktif={menyimpan || executionAktifId === ''}>
           {menyimpan ? 'Menyimpan…' : 'Simpan bug'}
         </Button>
       }
     >
       <div className="col col-16">
+        {pilih && (
+          <>
+            <SelectOpsi
+              label="Execution"
+              nilai={executionAktifId}
+              onUbah={(v) => {
+                setExecDipilih(v)
+                setTcDipilih('')
+              }}
+              pilihan={executions.map((e) => ({ nilai: e.id, label: e.judul }))}
+            />
+            <SearchableSelect
+              label="Test case terkait"
+              nilai={tcDipilih}
+              onUbah={(v) => {
+                setTcDipilih(v)
+                // Bila actual result belum diisi dan test case yang dipilih punya actual result, bantu isi otomatis
+                if (!actual.trim() && v && executionAktif) {
+                  const targetTc = executionAktif.kasus.find((k) => k.tcId === v)
+                  if (targetTc?.actualResult) {
+                    setActual(targetTc.actualResult)
+                  }
+                }
+              }}
+              bantuan="Pilih Di luar scenario untuk bug yang tidak berasal dari test case."
+              pilihan={[
+                {
+                  nilai: '',
+                  label: 'Di luar scenario',
+                  scenario: 'Bug yang tidak terikat pada test case tertentu',
+                },
+                ...(executionAktif?.kasus ?? []).map((k) => ({
+                  nilai: k.tcId,
+                  label: k.tcId,
+                  tcId: k.tcId,
+                  scenario: k.scenario,
+                  modul: k.modul,
+                  status: k.status,
+                  nonaktif: k.bugId !== null,
+                  pesanNonaktif: k.bugId ? 'Sudah ada bug' : undefined,
+                })),
+              ]}
+            />
+          </>
+        )}
         <TextField
           label="Judul bug"
           nilai={judul}
@@ -103,7 +160,9 @@ export function CatatBug({ executionId, kasus, onTutup, onTersimpan }: Props) {
           <span className="label">Evidence</span>
           {thumb.length === 0 && <span className="help">Belum ada evidence.</span>}
           <Thumbs item={thumb} />
-          {kasus.evidence.length > 0 && <span className="help">Evidence test case ikut terlampir otomatis.</span>}
+          {kasusAktif && kasusAktif.evidence.length > 0 && (
+            <span className="help">Evidence test case ikut terlampir otomatis.</span>
+          )}
           <PemilihEvidence mode="dua" onTambah={(b) => setBaru((d) => [...d, b])} />
         </div>
       </div>

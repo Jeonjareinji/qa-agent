@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { DAFTAR_PERIODE, DAFTAR_SEVERITY } from '../data/dummy.ts'
 import type { Periode } from '../data/dummy.ts'
 import { Galat, Memuat } from '../components/Kosong.tsx'
@@ -11,6 +11,7 @@ import { hitungBusur } from '../lib/chart.ts'
 import { inisial, persen } from '../lib/hitung.ts'
 import type { Nav, Rute } from '../lib/nav.ts'
 import { namaPengguna } from '../lib/telegram.ts'
+import { useGesek } from '../lib/useGesek.ts'
 import { useLoad } from '../lib/useLoad.ts'
 import './Beranda.css'
 
@@ -30,10 +31,18 @@ const MENU: MenuItem[] = [
   { rute: { nama: 'buatExecution' }, ikon: 'papanTambah', kelas: 'm2', judul: 'Buat Test Execution', keterangan: 'Pilih kumpulan test case tersimpan' },
   { rute: { nama: 'daftarExecution' }, ikon: 'mainBulat', kelas: 'm3', judul: 'Test Execution', keterangan: 'Jalankan, update status, export report' },
   { rute: { nama: 'daftarTestCase' }, ikon: 'daftar', kelas: 'm4', judul: 'Daftar Test Case', keterangan: 'Lihat dan edit test case yang sudah diimpor' },
+  { rute: { nama: 'daftarBug' }, ikon: 'bug', kelas: 'm5', judul: 'Bug List', keterangan: 'Semua bug dari test execution' },
 ]
 
 export function Beranda({ nav }: { nav: Nav }) {
   const [periode, setPeriode] = useState<Periode>('30')
+  const [ringkasanBuka, setRingkasanBuka] = useState(false)
+  const [menuBuka, setMenuBuka] = useState(false)
+  const isiRingkasan = useRef<HTMLDivElement>(null)
+  const isiMenu = useRef<HTMLDivElement>(null)
+  // Gesek atau gulung di mana pun pada sheet: ke atas membuka, ke bawah (saat isinya di puncak) menciutkan.
+  const gesekRingkasan = useGesek(ringkasanBuka, setRingkasanBuka, { isi: isiRingkasan, roda: true })
+  const gesekMenu = useGesek(menuBuka, setMenuBuka, { isi: isiMenu, roda: true })
   const { data, galat, muatUlang } = useLoad('dashboard:' + periode, () => getDashboard(periode))
   const nama = namaPengguna()
 
@@ -54,6 +63,7 @@ export function Beranda({ nav }: { nav: Nav }) {
 
   return (
     <main className="ahome">
+      {/* Latar tetap: tidak ikut tergulung, sheet menutupinya dari bawah. */}
       <section className="hero-gelap">
         <div className="hero-bar">
           <div className="hero-logo">
@@ -129,8 +139,21 @@ export function Beranda({ nav }: { nav: Nav }) {
         </div>
       </section>
 
-      <section className="lsheet" aria-label="Ringkasan">
-        <div className="row between" style={{ padding: '0 20px 12px' }}>
+      <section
+        ref={gesekRingkasan}
+        className={ringkasanBuka ? 'bsheet bs-ringkasan terbuka' : 'bsheet bs-ringkasan'}
+        aria-label="Ringkasan"
+      >
+        <button
+          type="button"
+          className="gagang-lipat"
+          aria-expanded={ringkasanBuka}
+          aria-label={ringkasanBuka ? 'Ciutkan Ringkasan' : 'Buka Ringkasan'}
+          onClick={() => setRingkasanBuka((v) => !v)}
+        >
+          <i />
+        </button>
+        <div className="row between bs-kepala">
           <h2 className="t-title">Ringkasan</h2>
           <div className="select-wrap kecil">
             <label className="sr" htmlFor="periode">
@@ -151,93 +174,110 @@ export function Beranda({ nav }: { nav: Nav }) {
             <Icon nama="bawah" />
           </div>
         </div>
-        <div className="hscroll">
-          <div className="hcard grad">
-            <b>{data.testCaseTersimpan}</b>
-            <span className="k">Test case tersimpan</span>
+        <div ref={isiRingkasan} className="bs-isi">
+          <div className="hscroll">
+            <div className="hcard grad">
+              <b>{data.testCaseTersimpan}</b>
+              <span className="k">Test case tersimpan</span>
+            </div>
+            <div className="hcard">
+              <span className="ikon-bulat kecil">
+                <Icon nama="mainBulat" ukuran={16} />
+              </span>
+              <span>
+                <b>{data.executionAktif}</b>
+                <br />
+                <span className="k c-2">Execution aktif</span>
+              </span>
+            </div>
+            <div className="hcard">
+              <span className="ikon-bulat kecil k-fail">
+                <Icon nama="bug" ukuran={16} />
+              </span>
+              <span>
+                <b>{data.bugOpen}</b>
+                <br />
+                <span className="k c-2">Bug open</span>
+              </span>
+            </div>
+            <div className="hcard">
+              <span className="ikon-bulat kecil k-pass">
+                <Icon nama="centangBulat" ukuran={16} />
+              </span>
+              <span>
+                <b>{data.hitung.Pass}</b>
+                <br />
+                <span className="k c-2">Pass</span>
+              </span>
+            </div>
           </div>
-          <div className="hcard">
-            <span className="ikon-bulat kecil">
-              <Icon nama="mainBulat" ukuran={16} />
-            </span>
-            <span>
-              <b>{data.executionAktif}</b>
-              <br />
-              <span className="k c-2">Execution aktif</span>
-            </span>
+
+          <div className="sheet-bagian bs-pad">
+            <h3 className="t-h2">Progress execution aktif</h3>
+            {data.progressAktif.map((p) => (
+              <div key={p.id} className="col col-8">
+                <div className="row between">
+                  <span className="t-sm w5 ell">{p.judul}</span>
+                  <span className="t-sm c-2 mono">
+                    {p.selesai}/{p.total}
+                  </span>
+                </div>
+                <Progress ukuran="kecil" segmen={[{ kelas: 'f-primary', persen: persen(p.selesai, p.total) }]} />
+              </div>
+            ))}
           </div>
-          <div className="hcard">
-            <span className="ikon-bulat kecil k-fail">
-              <Icon nama="bug" ukuran={16} />
-            </span>
-            <span>
-              <b>{data.bugOpen}</b>
-              <br />
-              <span className="k c-2">Bug open</span>
-            </span>
-          </div>
-          <div className="hcard">
-            <span className="ikon-bulat kecil k-pass">
-              <Icon nama="centangBulat" ukuran={16} />
-            </span>
-            <span>
-              <b>{data.hitung.Pass}</b>
-              <br />
-              <span className="k c-2">Pass</span>
-            </span>
+
+          <div className="sheet-bagian bs-pad">
+            <h3 className="t-h2">Bug open per severity</h3>
+            {DAFTAR_SEVERITY.map((s) => (
+              <div key={s} className="baris-bug">
+                <span>
+                  <i className={'dot d-' + KUNCI_SEVERITY[s]} />
+                  {s}
+                </span>
+                <Progress
+                  ukuran="kecil"
+                  segmen={[{ kelas: 'f-' + KUNCI_SEVERITY[s], persen: (data.bugPerSeverity[s] / maksBug) * 100 }]}
+                />
+                <b>{data.bugPerSeverity[s]}</b>
+              </div>
+            ))}
           </div>
         </div>
       </section>
 
-      <section className="dsheet dk" aria-label="Menu">
-        <h2 className="t-title" style={{ margin: '4px 0' }}>
-          Menu
-        </h2>
-        <nav className="muncul" aria-label="Menu utama">
-          {MENU.map((m) => (
-            <button key={m.judul} type="button" className="menu-baris" onClick={() => nav.buka(m.rute)}>
-              <span className={'ikon-bulat ' + m.kelas}>
-                <Icon nama={m.ikon} />
-              </span>
-              <span className="grow col col-4">
-                <span className="t-body w6">{m.judul}</span>
-                <span className="t-cap">{m.keterangan}</span>
-              </span>
-              <Icon nama="maju" className="c-3" />
-            </button>
-          ))}
-        </nav>
-
-        <div className="sheet-bagian">
-          <h3 className="t-h2">Progress execution aktif</h3>
-          {data.progressAktif.map((p) => (
-            <div key={p.id} className="col col-8">
-              <div className="row between">
-                <span className="t-sm w5 ell">{p.judul}</span>
-                <span className="t-sm c-2 mono">
-                  {p.selesai}/{p.total}
-                </span>
-              </div>
-              <Progress ukuran="kecil" segmen={[{ kelas: 'f-primary', persen: persen(p.selesai, p.total) }]} />
-            </div>
-          ))}
+      <section
+        ref={gesekMenu}
+        className={menuBuka ? 'bsheet bs-menu dk terbuka' : 'bsheet bs-menu dk'}
+        aria-label="Menu"
+      >
+        <button
+          type="button"
+          className="gagang-lipat"
+          aria-expanded={menuBuka}
+          aria-label={menuBuka ? 'Ciutkan Menu' : 'Buka Menu'}
+          onClick={() => setMenuBuka((v) => !v)}
+        >
+          <i />
+        </button>
+        <div className="bs-kepala">
+          <h2 className="t-title">Menu</h2>
         </div>
-
-        <div className="sheet-bagian">
-          <h3 className="t-h2">Bug open per severity</h3>
-          {DAFTAR_SEVERITY.map((s) => (
-            <div key={s} className="baris-bug">
-              <span>
-                <i className={'dot d-' + KUNCI_SEVERITY[s]} />
-                {s}
-              </span>
-              <Progress
-                ukuran="kecil"
-                segmen={[{ kelas: 'f-' + KUNCI_SEVERITY[s], persen: (data.bugPerSeverity[s] / maksBug) * 100 }]}
-              />
-              <b>{data.bugPerSeverity[s]}</b>
-            </div>
-          ))}
+        <div ref={isiMenu} className="bs-isi">
+          <nav className="muncul bs-pad" aria-label="Menu utama">
+            {MENU.map((m) => (
+              <button key={m.judul} type="button" className="menu-baris" onClick={() => nav.buka(m.rute)}>
+                <span className={'ikon-bulat ' + m.kelas}>
+                  <Icon nama={m.ikon} />
+                </span>
+                <span className="grow col col-4">
+                  <span className="t-body w6">{m.judul}</span>
+                  <span className="t-cap">{m.keterangan}</span>
+                </span>
+                <Icon nama="maju" className="c-3" />
+              </button>
+            ))}
+          </nav>
         </div>
       </section>
     </main>

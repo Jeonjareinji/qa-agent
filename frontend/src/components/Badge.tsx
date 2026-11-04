@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import type { Severity, StatusExecution, StatusKasus } from '../data/dummy.ts'
+import type { Severity, StatusBug, StatusExecution, StatusKasus } from '../data/dummy.ts'
 import { KUNCI_SEVERITY, KUNCI_STATUS } from './statusInfo.ts'
 
 export function StatusBadge({ status }: { status: StatusKasus }) {
@@ -8,6 +8,17 @@ export function StatusBadge({ status }: { status: StatusKasus }) {
 
 export function SeverityBadge({ severity, teks, mono }: { severity: Severity; teks?: string; mono?: boolean }) {
   return <span className={'badge s-' + KUNCI_SEVERITY[severity] + (mono ? ' mono' : '')}>{teks ?? severity}</span>
+}
+
+const KELAS_STATUS_BUG: Record<StatusBug, string> = {
+  Open: 'b-fail',
+  'In Progress': 'b-blocked',
+  Resolved: 'b-pass',
+  Closed: 'b-notrun',
+}
+
+export function StatusBugBadge({ status }: { status: StatusBug }) {
+  return <span className={'badge ' + KELAS_STATUS_BUG[status]}>{status}</span>
 }
 
 const LABEL_EXECUTION: Record<StatusExecution, { label: string; kelas: string }> = {

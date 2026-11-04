@@ -195,6 +195,11 @@ a {
   animation: layar-masuk 0.28s cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
 
+.layar-tersembunyi {
+  visibility: hidden;
+  pointer-events: none;
+}
+
 /* Tipografi */
 .t-title {
   font-size: 22px;
@@ -347,6 +352,9 @@ a {
   display: flex;
   flex-direction: column;
   gap: 20px;
+}
+.scroll > * {
+  flex-shrink: 0; /* anak tidak boleh menyusut saat isi lebih tinggi dari layar (mis. baris chip) */
 }
 .scroll.tight {
   gap: 12px;

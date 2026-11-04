@@ -23,6 +23,7 @@
   padding: 6px 0 0;
   background: none;
   border: 0;
+  touch-action: none;
 }
 .asheet-gagang i {
   display: block;
@@ -86,5 +87,25 @@
   transform: scale(0.985);
 }
 .baris-tombol:last-child {
+  border-bottom: 0;
+}
+.asheet-gagang,
+.asheet-kepala h2 {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Baris execution: area info yang bisa diketuk, lalu satu tombol aksi di bawahnya. */
+.baris-aksi {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+}
+.baris-aksi:last-child {
+  border-bottom: 0;
+}
+.baris-aksi .baris-tombol {
   border-bottom: 0;
 }

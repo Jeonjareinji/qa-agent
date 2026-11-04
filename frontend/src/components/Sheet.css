@@ -21,6 +21,10 @@
   box-shadow: var(--shadow-sheet);
   animation: sheet-masuk 0.32s cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
+.sheet-atas {
+  flex: none;
+  touch-action: none;
+}
 .sheet-gagang {
   flex: none;
   width: 40px;
@@ -53,4 +57,12 @@
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
+}
+.sheet-atas {
+  user-select: none;
+  -webkit-user-select: none;
+}
+/* Satu tombol di kaki sheet memenuhi lebar penuh (kaki berkolom dua untuk dua tombol). */
+.sheet-kaki > :only-child {
+  grid-column: 1 / -1;
 }

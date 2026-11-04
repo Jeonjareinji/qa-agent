@@ -12,7 +12,7 @@ import { haptic, showAlert } from '../lib/telegram.ts'
 import { useLoad } from '../lib/useLoad.ts'
 
 export function ValidasiField({ nav, draft }: { nav: Nav; draft: ImportDraft }) {
-  const { data, galat, muatUlang } = useLoad('validasi:' + draft.jenis, () => validasiImport(draft.jenis))
+  const { data, galat, muatUlang } = useLoad('validasi:' + draft.jenis + ':' + draft.namaFile, () => validasiImport(draft.jenis, draft))
   const [menyimpan, setMenyimpan] = useState(false)
 
   if (galat) return <Galat pesan={galat} onUlang={muatUlang} />
@@ -36,8 +36,12 @@ export function ValidasiField({ nav, draft }: { nav: Nav; draft: ImportDraft }) 
   }
 
   async function unduhTemuan() {
-    await unduhDaftarTemuan()
-    await showAlert('Daftar temuan diunduh (simulasi).')
+    try {
+      await unduhDaftarTemuan()
+      await showAlert('Daftar temuan validasi berhasil diunduh.')
+    } catch (e) {
+      await showAlert(e instanceof Error ? e.message : 'Gagal mengunduh temuan.')
+    }
   }
 
   return (

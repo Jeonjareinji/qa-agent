@@ -1,17 +1,21 @@
-/* Beranda: hero gelap dengan orb, sheet terang, dan sheet gelap berlapis. */
+/* Beranda: hero gelap dengan orb yang TETAP di tempat, dan dua sheet bawah yang naik menutupinya.
+   Ringkasan terbuka sampai 80% tinggi layar, Menu sampai 70%. */
 .ahome {
+  --tinggi-ringkasan: 80%;
+  --tinggi-menu: 70%;
+  --orb: clamp(130px, calc(100dvh - 560px), 240px);
+  position: relative;
   flex: 1;
   min-height: 0;
-  overflow: auto;
-  display: flex;
-  flex-direction: column;
+  overflow: hidden;
+  overscroll-behavior: none;
 }
 .hero-gelap {
-  position: relative;
-  flex: none;
+  position: absolute;
+  inset: 0;
   overflow: hidden;
   color: #fff;
-  padding: calc(16px + var(--safe-atas)) 20px 64px;
+  padding: calc(12px + var(--safe-atas)) 20px 0;
   background:
     radial-gradient(80% 46% at 50% 40%, rgba(53, 166, 190, 0.5), transparent 72%),
     linear-gradient(180deg, #02090c 0%, #052029 52%, #0c4755 100%);
@@ -62,9 +66,9 @@
 }
 .orb {
   position: relative;
-  width: 248px;
-  height: 248px;
-  margin: 14px auto 6px;
+  width: var(--orb);
+  height: var(--orb);
+  margin: 10px auto 6px;
 }
 .orb svg {
   display: block;
@@ -82,8 +86,8 @@
 }
 .orb-tengah b {
   font-family: var(--font-mono);
-  font-size: 46px;
-  line-height: 52px;
+  font-size: calc(var(--orb) * 0.19);
+  line-height: 1.1;
   font-weight: 700;
   letter-spacing: -0.04em;
 }
@@ -172,25 +176,56 @@
   align-items: center;
   gap: 6px;
 }
-.lsheet {
-  position: relative;
-  flex: none;
-  margin-top: -36px;
+.bsheet {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
   border-radius: 36px 36px 0 0;
+  transition: top 0.55s cubic-bezier(0.2, 0.8, 0.2, 1);
+  user-select: none;
+  -webkit-user-select: none;
+}
+/* Posisi tertutup menyisakan kepala sheet; terbuka menaikkan sheet sampai batas tingginya. */
+.bs-ringkasan {
+  z-index: 3;
+  top: max(calc(100% - 392px), 38%);
   background: linear-gradient(180deg, #f8fdfe, #eef7f9);
-  padding: 22px 0 64px;
   box-shadow: 0 -18px 40px -20px rgba(3, 13, 18, 0.5);
   animation: sheet-naik 0.55s cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
-.dsheet {
-  position: relative;
-  flex: none;
-  margin-top: -36px;
-  border-radius: 36px 36px 0 0;
+.bs-ringkasan.terbuka {
+  top: calc(100% - var(--tinggi-ringkasan));
+}
+.bs-menu {
+  z-index: 4;
+  top: max(calc(100% - 168px), 62%);
   background: var(--sheet-gelap);
-  padding: 20px 20px calc(48px + var(--safe-bawah));
   box-shadow: 0 -20px 44px -14px rgba(3, 13, 18, 0.6);
   animation: sheet-naik 0.65s 0.08s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+.bs-menu.terbuka {
+  top: calc(100% - var(--tinggi-menu));
+}
+.bs-kepala {
+  flex: none;
+  padding: 0 20px 12px;
+}
+.bs-isi {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding-bottom: calc(24px + var(--safe-bawah));
+}
+/* Ringkasan sebagian tertutup Menu di bawahnya, jadi isi paling bawah diberi ruang tambahan. */
+.bs-ringkasan .bs-isi {
+  padding-bottom: calc(190px + var(--safe-bawah));
+}
+.bs-pad {
+  padding: 0 20px;
 }
 .hscroll {
   display: flex;
@@ -283,9 +318,45 @@
   font-family: var(--font-mono);
   font-weight: 600;
 }
+/* Gagang di bagian atas tiap sheet Beranda. */
+.gagang-lipat {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  min-height: 44px;
+  background: none;
+  border: 0;
+  color: var(--text);
+}
+.gagang-lipat i {
+  display: block;
+  width: 46px;
+  height: 5px;
+  border-radius: 999px;
+  background: currentColor;
+  opacity: 0.3;
+  transition:
+    width 0.3s ease,
+    opacity 0.3s ease;
+}
+.gagang-lipat[aria-expanded='false'] i {
+  width: 30px;
+  opacity: 0.65;
+}
 .sheet-bagian {
   display: flex;
   flex-direction: column;
   gap: 12px;
   margin-top: 20px;
+}
+
+/* Layar pendek: ringkasan status di hero disembunyikan (angkanya ada di kartu Ringkasan) agar tidak tertutup sheet. */
+@media (max-height: 700px) {
+  .hero-mini {
+    display: none;
+  }
+  .bs-ringkasan {
+    top: max(calc(100% - 372px), 42%);
+  }
 }
