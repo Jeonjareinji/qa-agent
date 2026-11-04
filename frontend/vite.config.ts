@@ -5,7 +5,6 @@ import react from '@vitejs/plugin-react'
 const allowedHosts = ['.trycloudflare.com']
 
 export default defineConfig({
-  base: '/qa-agent/',
   plugins: [react()],
   server: {
     host: '0.0.0.0',
