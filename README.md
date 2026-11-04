@@ -147,12 +147,22 @@ CREATE DATABASE qa_agent;
    ```
 
 3. Jalankan server development frontend:
-   ```bash
-   npm run dev
-   ```
+   - **Mode Terhubung ke Backend (Default):**
+     ```bash
+     npm run dev
+     ```
+   - **Mode Statis Murni (Tanpa Backend / Data Dummy Lokal):**
+     ```bash
+     npm run dev:static
+     ```
 
 4. Buka tautan lokal yang tampil di terminal di browser Anda (umumnya `http://localhost:5173`).
    *Vite sudah dikonfigurasi untuk meneruskan setiap request `/api/*` secara otomatis ke backend di `http://127.0.0.1:8787`.*
+
+> **Tips Switch Mode Instan lewat URL:**  
+> Kamu juga bisa berpindah mode kapan saja langsung dari URL browser tanpa restart server:
+> - Mode Statis: `http://localhost:5173/?mode=static`
+> - Mode Backend: `http://localhost:5173/?mode=backend`
 
 ---
 

@@ -49,6 +49,37 @@ function unduhBlob(blob: Blob, namaFile: string) {
   setTimeout(() => URL.revokeObjectURL(url), 2000)
 }
 
+const KUNCI_MODE_STORAGE = 'qa_agent_mode'
+
+// Menentukan apakah aplikasi berjalan dalam Mode Statis (tanpa backend).
+// Bisa diaktifkan lewat:
+// 1. Parameter URL: ?mode=static (atau ?mode=backend untuk kembali ke backend)
+// 2. Perintah npm: npm run dev:static / npm run build:static (VITE mode = 'static')
+// 3. Env var: VITE_STATIC_MODE=true
+export function isStaticMode(): boolean {
+  if (typeof window !== 'undefined') {
+    const params = new URLSearchParams(window.location.search)
+    const modeParam = params.get('mode')?.toLowerCase()
+    if (modeParam === 'static') {
+      sessionStorage.setItem(KUNCI_MODE_STORAGE, 'static')
+      return true
+    }
+    if (modeParam === 'backend' || modeParam === 'api') {
+      sessionStorage.setItem(KUNCI_MODE_STORAGE, 'backend')
+      return false
+    }
+    const tersimpan = sessionStorage.getItem(KUNCI_MODE_STORAGE)
+    if (tersimpan === 'static') return true
+    if (tersimpan === 'backend') return false
+  }
+
+  if (import.meta.env.MODE === 'static' || import.meta.env.VITE_STATIC_MODE === 'true') {
+    return true
+  }
+
+  return false
+}
+
 class ApiHttpError extends Error {
   status: number
   constructor(pesan: string, status: number) {
@@ -58,6 +89,9 @@ class ApiHttpError extends Error {
 }
 
 async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
+  if (isStaticMode()) {
+    throw new Error('STATIC_MODE')
+  }
   const initData = window.Telegram?.WebApp?.initData || ''
   const headers = new Headers(init?.headers)
   if (!headers.has('Content-Type') && !(init?.body instanceof FormData)) {
@@ -68,10 +102,23 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   }
   const res = await fetch(path, { ...init, headers })
   if (!res.ok) {
-    const body = (await res.json().catch(() => ({}))) as { error?: string }
+    const contentType = res.headers.get('content-type') || ''
+    // Bila bukan JSON dari backend (misal Vite proxy error 500/502 saat backend mati, atau 404 HTML di static hosting),
+    // lempar Error biasa agar otomatis fallback ke mode statis tanpa error di UI.
+    if (!contentType.includes('application/json') || res.status === 502 || res.status === 503 || res.status === 504) {
+      throw new Error(`BACKEND_UNAVAILABLE_${res.status}`)
+    }
+    const body = (await res.json().catch(() => null)) as { error?: string } | null
+    if (!body || typeof body.error !== 'string') {
+      throw new Error(`BACKEND_UNAVAILABLE_${res.status}`)
+    }
     throw new ApiHttpError(body.error || `HTTP ${res.status}`, res.status)
   }
   if (res.status === 204) return undefined as T
+  const contentType = res.headers.get('content-type') || ''
+  if (!contentType.includes('application/json')) {
+    throw new Error('INVALID_API_RESPONSE')
+  }
   return (await res.json()) as T
 }
 
@@ -254,8 +301,11 @@ export async function simpanImport(draft: ImportDraft): Promise<HasilImport> {
 
 export async function unduhTemplate(jenis: Jenis): Promise<void> {
   try {
+    if (isStaticMode()) throw new Error('STATIC_MODE')
     const res = await fetch(`/api/template/${encodeURIComponent(jenis)}`)
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    const contentType = res.headers.get('content-type') || ''
+    if (contentType.includes('text/html')) throw new Error('STATIC_FALLBACK')
     const blob = await res.blob()
     unduhBlob(blob, `Template_QA_${jenis === 'software' ? 'Software' : 'Hardware'}.xlsx`)
   } catch {
@@ -358,8 +408,11 @@ export async function unduhExcelKumpulan(kumpulanId: string): Promise<void> {
   const headers: HeadersInit = {}
   if (initData) headers['Authorization'] = `tma ${initData}`
   try {
+    if (isStaticMode()) throw new Error('STATIC_MODE')
     const res = await fetch(`/api/kumpulan/${encodeURIComponent(kumpulanId)}/download`, { headers })
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    const contentType = res.headers.get('content-type') || ''
+    if (contentType.includes('text/html')) throw new Error('STATIC_FALLBACK')
     const blob = await res.blob()
     unduhBlob(blob, `Kumpulan_${kumpulanId}.xlsx`)
   } catch {
@@ -663,6 +716,61 @@ export async function getLaporan(executionId: string): Promise<HasilExport | nul
   }
 }
 
+function buatPdfLaporanStatis(ex: TestExecution): Blob {
+  const clean = (s: string) =>
+    String(s || '')
+      .replace(/[\u2014\u2013]/g, '-')
+      .replace(/[^\x20-\x7E]/g, ' ')
+      .replace(/\\/g, '\\\\')
+      .replace(/\(/g, '\\(')
+      .replace(/\)/g, '\\)')
+
+  const hitung = hitungStatus(ex.kasus)
+  const total = ex.kasus.length
+  const dieksekusi = jumlahDieksekusi(ex.kasus)
+  const passRate = dieksekusi > 0 ? Math.round((hitung.Pass / dieksekusi) * 100) : 0
+
+  const cmds: string[] = []
+  cmds.push('0.08 0.64 0.75 rg 36 764 523 42 re f')
+  cmds.push('BT /F2 12 Tf 1 1 1 rg 48 780 Td (QA AGENT | TEST EXECUTION REPORT) Tj ET')
+  cmds.push(`BT /F2 16 Tf 0.04 0.1 0.14 rg 36 736 Td (${clean(ex.judul)}) Tj ET`)
+  cmds.push(
+    `BT /F1 9.5 Tf 0.35 0.44 0.5 rg 36 718 Td (Total: ${total} | Pass Rate: ${passRate}% | Pass: ${hitung.Pass} | Fail: ${hitung.Fail} | Blocked: ${hitung.Blocked} | Not Run: ${hitung['Not Run']}) Tj ET`,
+  )
+
+  let y = 690
+  for (const k of ex.kasus.slice(0, 22)) {
+    if (y < 60) break
+    cmds.push('0.96 0.98 0.99 rg 0.86 0.9 0.93 RG 36 ' + (y - 22) + ' 523 26 re b')
+    cmds.push(`BT /F2 8.5 Tf 0.08 0.14 0.2 rg 44 ${y - 12} Td ([${clean(k.status)}] ${clean(k.tcId)} - ${clean(k.scenario).slice(0, 68)}) Tj ET`)
+    y -= 30
+  }
+
+  const stream = cmds.join('\n')
+  const objs = [
+    '1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n',
+    '2 0 obj\n<< /Type /Pages /Kids [5 0 R] /Count 1 >>\nendobj\n',
+    '3 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>\nendobj\n',
+    '4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>\nendobj\n',
+    `5 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 6 0 R >>\nendobj\n`,
+    `6 0 obj\n<< /Length ${stream.length} >>\nstream\n${stream}\nendstream\nendobj\n`,
+  ]
+
+  let pdf = '%PDF-1.4\n'
+  const offsets: number[] = [0]
+  for (const o of objs) {
+    offsets.push(pdf.length)
+    pdf += o
+  }
+  const xrefPos = pdf.length
+  pdf += `xref\n0 ${objs.length + 1}\n0000000000 65535 f \n`
+  for (let i = 1; i <= objs.length; i++) {
+    pdf += `${String(offsets[i]).padStart(10, '0')} 00000 n \n`
+  }
+  pdf += `trailer\n<< /Size ${objs.length + 1} /Root 1 0 R >>\nstartxref\n${xrefPos}\n%%EOF`
+  return new Blob([pdf], { type: 'application/pdf' })
+}
+
 export async function unduhLaporan(executionId: string, format: FormatLaporan): Promise<void> {
   const initData = window.Telegram?.WebApp?.initData || ''
   const headers: HeadersInit = {}
@@ -670,8 +778,11 @@ export async function unduhLaporan(executionId: string, format: FormatLaporan): 
 
   const url = `/api/executions/${encodeURIComponent(executionId)}/download?format=${format}`
   try {
+    if (isStaticMode()) throw new Error('STATIC_MODE')
     const res = await fetch(url, { headers })
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    const contentType = res.headers.get('content-type') || ''
+    if (contentType.includes('text/html')) throw new Error('STATIC_FALLBACK')
     const blob = await res.blob()
 
     let namaFile = `Report_${executionId}.${format}`
@@ -682,7 +793,7 @@ export async function unduhLaporan(executionId: string, format: FormatLaporan): 
     }
     unduhBlob(blob, namaFile)
   } catch (e) {
-    // Client fallback jika server tidak dapat diakses
+    // Client fallback untuk Mode Statis atau bila server tidak dapat diakses
     try {
       const ex = cariExecution(executionId)
       const namaFile = `Report_${slug(ex.judul)}.${format}`
@@ -699,6 +810,11 @@ export async function unduhLaporan(executionId: string, format: FormatLaporan): 
         const ws = XLSX.utils.aoa_to_sheet(aoa)
         XLSX.utils.book_append_sheet(wb, ws, 'Report')
         XLSX.writeFile(wb, namaFile)
+        return
+      }
+      if (format === 'pdf') {
+        const pdfBlob = buatPdfLaporanStatis(ex)
+        unduhBlob(pdfBlob, namaFile)
         return
       }
     } catch (err) {
