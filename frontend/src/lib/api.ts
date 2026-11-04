@@ -573,6 +573,22 @@ export async function kembalikanKasus(executionId: string, tcId: string): Promis
   return lengkapi(e)
 }
 
+export async function unggahEvidenceFile(berkas: File): Promise<string | null> {
+  const bisaDilihat = berkas.type.startsWith('image/') || berkas.type.startsWith('video/')
+  const blobUrl = bisaDilihat ? URL.createObjectURL(berkas) : null
+  try {
+    const form = new FormData()
+    form.append('file', berkas)
+    const res = await apiFetch<{ url: string }>('/api/upload', {
+      method: 'POST',
+      body: form,
+    })
+    return res.url || blobUrl
+  } catch {
+    return blobUrl
+  }
+}
+
 export async function tambahEvidence(executionId: string, tcId: string, input: InputEvidence): Promise<ExecutionLengkap> {
   try {
     return await apiFetch<ExecutionLengkap>(
