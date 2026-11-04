@@ -71,6 +71,11 @@ export function isStaticMode(): boolean {
     const tersimpan = sessionStorage.getItem(KUNCI_MODE_STORAGE)
     if (tersimpan === 'static') return true
     if (tersimpan === 'backend') return false
+
+    // Otomatis aktifkan mode statis jika berjalan di domain GitHub Pages (*.github.io)
+    if (window.location.hostname.endsWith('.github.io')) {
+      return true
+    }
   }
 
   if (import.meta.env.MODE === 'static' || import.meta.env.VITE_STATIC_MODE === 'true') {
