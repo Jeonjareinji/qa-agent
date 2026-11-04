@@ -25,10 +25,10 @@ frontend/.env.local
 
 # --- 3. Build & Output Produksi ---
 # Hasil build aplikasi frontend Vite / TypeScript
-dist/
-dist-ssr/
-frontend/dist/
-frontend/dist-ssr/
+# dist/
+# dist-ssr/
+# frontend/dist/
+# frontend/dist-ssr/
 frontend_static
 *.tsbuildinfo
 
