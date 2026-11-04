@@ -29,6 +29,7 @@ dist/
 dist-ssr/
 frontend/dist/
 frontend/dist-ssr/
+frontend_static
 *.tsbuildinfo
 
 # --- 4. File Upload & Media Bukti (Evidence) ---
